@@ -1,41 +1,50 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme, Notification, protocol } from 'electron';
-import { join } from 'path';
-import { electronApp, optimizer, is } from '@electron-toolkit/utils';
-import icon from '../../resources/icon.png?asset';
-import { readFile } from 'node:fs/promises';
-import './fc';
+import { app, shell, BrowserWindow, ipcMain, nativeTheme, Notification, protocol } from "electron";
+import { join } from "path";
+import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import icon from "../../resources/icon.png?asset";
+import { readFile } from "node:fs/promises";
+import "./fc";
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    width: 1280,
+    height: 760,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, "../preload/index.js"),
       sandbox: false
-    }
-    // titleBarStyle: 'hidden',
-    // ...(process.platform !== 'darwin' ? { titleBarOverlay: true } : {})
+    },
+    title: "my-image-view-electron",
+    titleBarStyle: "hidden",
+    ...(process.platform !== "darwin"
+      ? {
+          titleBarOverlay: {
+            color: "#181818",
+            symbolColor: "#ffffff",
+            height: 40
+          }
+        }
+      : {})
   });
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.on("ready-to-show", () => {
     mainWindow.show();
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
-    return { action: 'deny' };
+    return { action: "deny" };
   });
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 }
 
@@ -47,26 +56,26 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true, // 允许我们像在网页上那样请求资源
       standard: true, // 让这种方式的网址看起来像普通的网址
       bypassCSP: true, // 允许我们绕过一些安全限制
-      stream: true, // 允许我们以流的形式读取文件，这对于大文件很有用
-    },
-  },
+      stream: true // 允许我们以流的形式读取文件，这对于大文件很有用
+    }
+  }
 ]);
 
-ipcMain.handle('dark-mode:toggle', () => {
+ipcMain.handle("dark-mode:toggle", () => {
   if (nativeTheme.shouldUseDarkColors) {
-    nativeTheme.themeSource = 'light';
+    nativeTheme.themeSource = "light";
   } else {
-    nativeTheme.themeSource = 'dark';
+    nativeTheme.themeSource = "dark";
   }
   return nativeTheme.shouldUseDarkColors;
 });
 
-ipcMain.handle('dark-mode:system', () => {
-  nativeTheme.themeSource = 'system';
+ipcMain.handle("dark-mode:system", () => {
+  nativeTheme.themeSource = "system";
 });
 
-ipcMain.handle('notification:test', () => {
-  new Notification({ title: 'test title', body: 'test body' }).show();
+ipcMain.handle("notification:test", () => {
+  new Notification({ title: "test title", body: "test body" }).show();
 });
 
 // This method will be called when Electron has finished
@@ -74,7 +83,7 @@ ipcMain.handle('notification:test', () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron');
+  electronApp.setAppUserModelId("com.electron");
 
   function convertPath(originalPath) {
     const match = originalPath.match(/^([a-zA-Z])\/(.*)$/);
@@ -88,14 +97,14 @@ app.whenReady().then(() => {
   }
 
   // 告诉 Electron 如何响应你的特殊方式的请求
-  protocol.handle('local-resource', async (request) => {
+  protocol.handle("local-resource", async (request) => {
     console.log(`request.url:`, request.url);
     const decodedUrl = decodeURIComponent(
-      request.url.replace(new RegExp(`^local-resource://`, 'i'), '')
+      request.url.replace(new RegExp(`^local-resource://`, "i"), "")
     );
     // console.log(`decodedUrl:`, decodedUrl);
 
-    const fullPath = process.platform === 'win32' ? convertPath(decodedUrl) : decodedUrl;
+    const fullPath = process.platform === "win32" ? convertPath(decodedUrl) : decodedUrl;
     // console.log(`fullPath:`, fullPath);
     // console.log(`process.platform === 'win32':`, process.platform === 'win32');
 
@@ -106,13 +115,13 @@ app.whenReady().then(() => {
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
+  app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
 
   createWindow();
 
-  app.on('activate', function () {
+  app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -122,8 +131,8 @@ app.whenReady().then(() => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });

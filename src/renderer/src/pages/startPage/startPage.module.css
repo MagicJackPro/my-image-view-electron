@@ -1,6 +1,13 @@
 .base {
   display: flex;
   flex-direction: column;
+  background-color: #1f1f1f;
+
+  height: 100%;
+}
+
+.base span,.base h1 {
+  color: #ccc;
 }
 
 .drop-file-div {

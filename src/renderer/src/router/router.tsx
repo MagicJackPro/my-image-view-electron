@@ -1,17 +1,20 @@
-import { createBrowserRouter } from 'react-router'
-import StartPage from '@renderer/pages/startPage/startPage'
-import ViewImagePage from '@renderer/pages/viewImagePage/viewImagePage'
+import { createBrowserRouter } from 'react-router';
+import StartPage from '@renderer/pages/startPage/startPage';
+import ViewImagePage from '@renderer/pages/viewImagePage/viewImagePage';
+import BasePage from '@renderer/pages/BasePage/BasePage';
+
 const Router = createBrowserRouter([
   {
     path: '/',
+    Component: BasePage,
     children: [
-      { index: true, element: <StartPage /> },
+      { index: true, Component: StartPage },
       {
         path: 'viewIamge',
-        element: <ViewImagePage />
+        Component: ViewImagePage
       }
     ]
   }
-])
+]);
 
-export default Router
+export default Router;
