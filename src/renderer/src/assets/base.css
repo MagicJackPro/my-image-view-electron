@@ -1,0 +1,14 @@
+.titlebar {
+  /* -webkit-app-region: drag;
+  -weebkit-user-select: none; */
+}
+html{
+  min-width: 400px;
+  min-height: 270px;
+}
+body {
+  margin: 0;
+}
+span {
+  color: #ffffff;
+}
