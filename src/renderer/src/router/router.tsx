@@ -1,9 +1,10 @@
-import { createBrowserRouter } from 'react-router';
+// import { createBrowserRouter } from 'react-router';
+import { createHashRouter } from 'react-router';
 import StartPage from '@renderer/pages/startPage/startPage';
 import ViewImagePage from '@renderer/pages/viewImagePage/viewImagePage';
 import BasePage from '@renderer/pages/BasePage/BasePage';
 
-const Router = createBrowserRouter([
+const Router = createHashRouter([
   {
     path: '/',
     Component: BasePage,

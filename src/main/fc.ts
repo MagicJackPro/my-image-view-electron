@@ -44,7 +44,7 @@ ipcMain.handle("fc:readFile", async (_IpcMainInvokeEvent, path: string) => {
   }
 });
 
-ipcMain.handle("fc:selectDir", async (_IpcMainInvokeEvent) => {
+ipcMain.handle("fc:selectDir", async () => {
   try {
     const config: Electron.OpenDialogOptions = {
       properties: ["openDirectory", "dontAddToRecent"],
@@ -55,6 +55,7 @@ ipcMain.handle("fc:selectDir", async (_IpcMainInvokeEvent) => {
     if (OpenDialogReturnValue.filePaths.length > 0) {
       return OpenDialogReturnValue.filePaths[0];
     }
+    return ""
   } catch (error) {
     console.error(error);
     return Promise.reject(error);

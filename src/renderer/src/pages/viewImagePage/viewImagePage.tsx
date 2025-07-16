@@ -505,7 +505,7 @@ function ViewImagePage() {
           </Button>
         </div>
         <div>
-          <span>tip:未来准备加入快捷键 TODO</span>
+          <span>tip:未来准备加入快捷键 TODO {mediaType}</span>
           <Button type="dark" onClick={showList}>
             整理列表
           </Button>
