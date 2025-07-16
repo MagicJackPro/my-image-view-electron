@@ -1,0 +1,20 @@
+.base {
+  height: 100%;
+}
+.title-bar {
+  height: 40px;
+  background: #181818;
+  color: white;
+  display: flex;
+  justify-content: start;
+  align-items: center;
+
+  user-select: none;
+
+  app-region: drag;
+  padding-left: 10px;
+}
+
+.body {
+  height: calc(100% - 40px);
+}

@@ -1,0 +1,102 @@
+:root {
+  --button-default-hover-color: #4096ff;
+  --button-default-hover-border-color: #4096ff;
+  --button-default-hover-bg: #ffffff;
+
+  --button-dark-background-color: #1f1f1f;
+  --button-dark-border-color: #454545;
+  --button-dark-color: #c2c2c2;
+  --button-dark-hover-color: #ffffff;
+  --button-dark-hover-border-color: #0078d4;
+  --button-dark-hover-bg: #0078d4;
+}
+
+.base {
+  outline: none;
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+  /* transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1); */
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.block {
+  width: 100%;
+}
+
+.default {
+  background-color: #ffffff;
+
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.88);
+
+  height: 40px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgb(217, 217, 217);
+  padding-left: 15px;
+  padding-right: 15px;
+
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+.default:not(:disabled):hover {
+  color: var(--button-default-hover-color);
+  border-color: var(--button-default-hover-border-color);
+  background-color: var(--button-default-hover-bg);
+}
+
+.default:active {
+  box-shadow: 0px 0px 0px 8px rgba(60, 126, 255, 0.3);
+}
+
+.primary {
+  background-color: #4096ff;
+
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.88);
+
+  height: 40px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #4096ff;
+  padding-left: 15px;
+  padding-right: 15px;
+
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+
+.primary:active {
+  box-shadow: 0px 0px 0px 8px rgba(60, 126, 255, 0.3);
+}
+
+.dark {
+  background-color: var(--button-dark-background-color);
+
+  font-size: 16px;
+  color: var(--button-dark-color);
+
+  height: 40px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--button-dark-border-color);
+  padding-left: 15px;
+  padding-right: 15px;
+
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+
+.dark:not(:disabled):hover {
+  color: var(--button-dark-hover-color);
+  border-color: var(--button-dark-hover-border-color);
+  background-color: var(--button-dark-hover-bg);
+}

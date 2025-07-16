@@ -1,6 +1,6 @@
 # electron-app
 
-An Electron application with React and TypeScript
+2025年7月17日 01点41分 功能初步完成
 
 ## Recommended IDE Setup
 

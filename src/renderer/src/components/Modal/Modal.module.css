@@ -1,0 +1,17 @@
+.mask {
+  position:fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.8);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal {
+  background-color: var(--page-background-color);
+  border: #ffffff 1px solid;
+  padding: 10px;
+}

@@ -1,6 +1,6 @@
 import { ipcMain, dialog } from "electron";
 import { fileTypeFromFile, fileTypeFromBuffer } from "file-type";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, copyFile, access, mkdir } from "node:fs/promises";
 import { imageSize } from "image-size";
 
 ipcMain.handle("fc:ls", async (_IpcMainInvokeEvent, path: string) => {
@@ -47,16 +47,50 @@ ipcMain.handle("fc:readFile", async (_IpcMainInvokeEvent, path: string) => {
 ipcMain.handle("fc:selectDir", async (_IpcMainInvokeEvent) => {
   try {
     const config: Electron.OpenDialogOptions = {
-      properties: ["openDirectory","dontAddToRecent"],
+      properties: ["openDirectory", "dontAddToRecent"],
       title: "请选择要处理的图片文件夹",
-      message :"message "
+      message: "message "
     };
     const OpenDialogReturnValue = await dialog.showOpenDialog(config);
-    if(OpenDialogReturnValue.filePaths .length > 0){
-      return OpenDialogReturnValue.filePaths[0]
+    if (OpenDialogReturnValue.filePaths.length > 0) {
+      return OpenDialogReturnValue.filePaths[0];
     }
   } catch (error) {
     console.error(error);
     return Promise.reject(error);
   }
 });
+
+ipcMain.handle(
+  "fc:SecondaryConfirmationDialog",
+  async (_IpcMainInvokeEvent, config: Electron.MessageBoxOptions) => {
+    const MessageBoxReturnValue = await dialog.showMessageBox(config);
+    return MessageBoxReturnValue;
+  }
+);
+
+interface Record {
+  /** 文件名 */
+  name: string;
+  /** 处理方式 */
+  processingMethod: string;
+  /** 输出目录名称 */
+  outputDirName: string;
+}
+
+ipcMain.handle(
+  "fc:classification",
+  async (_IpcMainInvokeEvent, dirPath: string, record: Record) => {
+    const source = `${dirPath}\\${record.name}`;
+    const target = `${dirPath}\\${record.outputDirName}\\${record.name}`;
+    {
+      const outputDir = `${dirPath}\\${record.outputDirName}`;
+      try {
+        await access(outputDir);
+      } catch (error) {
+        await mkdir(outputDir);
+      }
+    }
+    await copyFile(source, target);
+  }
+);
