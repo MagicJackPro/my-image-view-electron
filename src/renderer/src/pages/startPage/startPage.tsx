@@ -14,7 +14,6 @@ function StartPage() {
     } catch (error) {}
   }
   function handleDrop(event) {
-    console.log("active drop");
     event.stopPropagation();
     event.preventDefault();
     const files = event.dataTransfer.files;
@@ -25,7 +24,6 @@ function StartPage() {
         type: files[0].type,
         size: files[0].size
       };
-      console.log(`file.path:${file.path}`);
       let newDirPath = "";
       if (file.type === "") {
         newDirPath = file.path;

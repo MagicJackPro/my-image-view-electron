@@ -87,7 +87,7 @@ app.whenReady().then(() => {
 
   function convertPath(originalPath) {
     const match = originalPath.match(/^([a-zA-Z])\/(.*)$/);
-    console.log(`match:`, match);
+
     if (match) {
       // 为 Windows 系统转换路径格式
       return `${match[1]}:/${match[2]}`;
@@ -98,16 +98,11 @@ app.whenReady().then(() => {
 
   // 告诉 Electron 如何响应你的特殊方式的请求
   protocol.handle("local-resource", async (request) => {
-    console.log(`request.url:`, request.url);
     const decodedUrl = decodeURIComponent(
       request.url.replace(new RegExp(`^local-resource://`, "i"), "")
     );
-    // console.log(`decodedUrl:`, decodedUrl);
 
     const fullPath = process.platform === "win32" ? convertPath(decodedUrl) : decodedUrl;
-    // console.log(`fullPath:`, fullPath);
-    // console.log(`process.platform === 'win32':`, process.platform === 'win32');
-
     const data = await readFile(fullPath); // 异步读取文件内容
     return new Response(data); // 将文件内容作为响应返回
   });

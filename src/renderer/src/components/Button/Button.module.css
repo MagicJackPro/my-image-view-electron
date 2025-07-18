@@ -100,3 +100,20 @@
   border-color: var(--button-dark-hover-border-color);
   background-color: var(--button-dark-hover-bg);
 }
+
+/* #region shape */
+.button-circle {
+  min-width: 40px;
+  padding-inline-start: 0;
+  padding-inline-end: 0;
+  border-radius: 50%;
+}
+/* #endregion */
+
+/* #region iocn */
+.base svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* #endregion */

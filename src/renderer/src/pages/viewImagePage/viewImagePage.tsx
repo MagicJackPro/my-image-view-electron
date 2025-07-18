@@ -7,17 +7,10 @@ import type { AsideFace } from "@renderer/components/Aside/Aside";
 import style from "./viewImagePage.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
+import ViewImage from '@renderer/components/VIewImage/ViewImage'
 
-interface PaginationFace {
-  /** 总数 */
-  count: number;
-  /** 页码 */
-  pageNumber: number;
-  /** 总页数 */
-  pageNumberCount: number;
-  /** 每页条数 */
-  pageSize: number;
-}
+import ModalTable from './ModalTable';
+import type {Record} from './ModalTable';
 
 type ProcessingMethodObjectKey =
   | "avatar"
@@ -35,14 +28,6 @@ type ProcessingMethodObjectFace = {
   [key in ProcessingMethodObjectKey]: { label: string; dirName: string };
 };
 
-interface Record {
-  /** 文件名 */
-  name: string;
-  /** 处理方式 */
-  processingMethod: string;
-  /** 输出目录名称 */
-  outputDirName: string;
-}
 type MediaTypeT = "PC" | "Mobile" | "1x1";
 
 const OutHeight = 1080;
@@ -76,18 +61,11 @@ function ViewImagePage() {
     resolution: { width: 0, height: 0 }
   });
   const [src, setSRC] = useState("");
-  const [imageScle, setImageScle] = useState({ width: "0px", height: "0px", baifenbi: 100 });
   const [pictureIndex, setPictureIndex] = useState(0);
   const [mediaType, setMediaType] = useState<MediaTypeT>("PC");
   const [listV, setListV] = useState(false);
   /** 整理列表 */
   const [listData, setListData] = useState<Record[]>([]);
-  const [pagination, setPagination] = useState<PaginationFace>({
-    pageNumber: 1,
-    pageSize: 4,
-    count: 0,
-    pageNumberCount: 1
-  });
 
   const [classificationModal, setClassificationModal] = useState({
     visible: false,
@@ -115,7 +93,7 @@ function ViewImagePage() {
     if (files.length > 0 && files.length >= pictureIndex + 1) {
       const filePath = store.dirpath + "\\" + files[pictureIndex];
       const fileName = files[pictureIndex];
-      invoke("fc:readFile", filePath).then((file) => {
+      invoke("fc:readPicture", filePath).then((file) => {
         const fileSize = (file.buffer.length / 1024).toFixed(2).toString() + "KiB";
         const resolution = { width: file.resolution.width, height: file.resolution.height };
         setFileInfo({
@@ -127,8 +105,6 @@ function ViewImagePage() {
         });
         setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type })));
 
-        const imageBox = document.getElementById("image-box");
-
         // 计算MediaType
         const newMediaType: MediaTypeT =
           resolution.width === resolution.height
@@ -138,33 +114,6 @@ function ViewImagePage() {
               : "PC";
         setMediaType(newMediaType);
 
-        if (imageBox) {
-          const clientWidth = imageBox.clientWidth;
-          const clientHeight = imageBox.clientHeight;
-          const widthDifference =
-            resolution.width > clientWidth ? resolution.width - clientWidth : 0;
-          const heightDifference =
-            resolution.height > clientHeight ? resolution.width - clientHeight : 0;
-          // console.log(`widthDifference:`, widthDifference);
-          // console.log(`heightDifference:`, heightDifference);
-          if (widthDifference === 0 && heightDifference === 0) {
-            setImageScle({ width: resolution.width, height: resolution.height, baifenbi: 100 });
-          } else {
-            // 计算比值
-            const baifenbi = Math.floor(
-              heightDifference > widthDifference
-                ? (clientHeight / resolution.height) * 100
-                : (clientWidth / resolution.width) * 100
-            );
-            if (heightDifference > widthDifference) {
-            }
-            setImageScle({
-              width: ((resolution.width * baifenbi) / 100).toFixed(2) + "px",
-              height: ((resolution.height * baifenbi) / 100).toFixed(2) + "px",
-              baifenbi
-            });
-          }
-        }
       });
       // setSRC('local-resource:' + store.dirpath + '\\' + files[0]);
     }
@@ -194,7 +143,7 @@ function ViewImagePage() {
   }
 
   function lastPicture() {
-    if (pictureIndex > 1) {
+    if (pictureIndex > 0) {
       setPictureIndex(pictureIndex - 1);
     }
   }
@@ -290,20 +239,6 @@ function ViewImagePage() {
     );
   }
 
-  function renderList() {
-    const start = (pagination.pageNumber - 1) * pagination.pageSize;
-    const arr = listData.slice(start, start + 4);
-    return arr.map((value, index) => {
-      return (
-        <tr key={index}>
-          <td>{index + 1}</td>
-          <td>暂未开发{value.outputDirName}</td>
-          <td>{value.name}</td>
-          <td>{value.processingMethod}</td>
-        </tr>
-      );
-    });
-  }
 
   function addListData(processingMethod: ProcessingMethodObjectKey) {
     if (!fileInfo.fileName) {
@@ -314,6 +249,7 @@ function ViewImagePage() {
     }
 
     //#region 计算放大
+    // console.log("计算放大");
     const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
     const targetPC = resolution.width > resolution.height ? true : false;
     const target = targetPC
@@ -321,20 +257,29 @@ function ViewImagePage() {
       : { height: OutWidth, width: OutHeight };
     const widthDifference = target.width > resolution.width ? target.width - resolution.width : 0;
     const heightDifference =
-      target.height > resolution.height ? resolution.height - resolution.height : 0;
-
+      target.height > resolution.height ? target.height - resolution.height : 0;
+    // console.log(`widthDifference:`, widthDifference);
+    // console.log(`heightDifference:`, heightDifference);
     /** 倍率 */
     let Magnification = 1;
     let lowValue = 0;
     let targetValue = 0;
     if (widthDifference > heightDifference) {
+      // console.log("select width");
+
       targetValue = target.width;
       lowValue = resolution.width;
     } else if (heightDifference > widthDifference) {
+      // console.log("select height");
       targetValue = target.height;
       lowValue = resolution.height;
     }
 
+    // console.log(`resolution:${resolution.width}x${resolution.height}`);
+
+    // console.log(`Magnification:`, Magnification);
+    // console.log(`lowValue:`, lowValue);
+    // console.log(`targetValue:`, targetValue);
     if (lowValue !== 0) {
       for (Magnification = 1; Magnification < 4; Magnification++) {
         if (Magnification * lowValue >= targetValue) {
@@ -361,16 +306,7 @@ function ViewImagePage() {
       findIndex === -1
         ? listData.concat([newRecord])
         : [...listData.slice(0, findIndex), newRecord, ...listData.slice(findIndex + 1)];
-    const newPagination: PaginationFace = {
-      count: newListData.length,
-      pageNumber: 0,
-      pageNumberCount: 0,
-      pageSize: pagination.pageSize
-    };
-    newPagination.pageNumberCount = Math.ceil(newPagination.count / newPagination.pageSize);
-    newPagination.pageNumber = newPagination.pageNumberCount;
     setListData(newListData);
-    setPagination(newPagination);
     nextPicture();
   }
 
@@ -418,65 +354,10 @@ function ViewImagePage() {
     return addListData("ThrowPillow");
   }
 
-  function lastTablePage() {
-    if (pagination.pageNumber > 1) {
-      const newPagination: PaginationFace = {
-        count: pagination.count,
-        pageNumber: pagination.pageNumber - 1,
-        pageNumberCount: pagination.pageNumberCount,
-        pageSize: pagination.pageSize
-      };
-      setPagination(newPagination);
-    }
-  }
-  function nextTablePage() {
-    const newPageNumber = pagination.pageNumber + 1;
-    if (pagination.pageNumberCount >= newPageNumber) {
-      const newPagination: PaginationFace = {
-        count: pagination.count,
-        pageNumber: newPageNumber,
-        pageNumberCount: pagination.pageNumberCount,
-        pageSize: pagination.pageSize
-      };
-      setPagination(newPagination);
-    }
-  }
-
-  function toPageNumber() {
-    const HTMLelement = document.getElementById("tablePageNumber");
-    if (HTMLelement && HTMLelement.tagName === "INPUT") {
-      const inputNumber = HTMLelement as HTMLInputElement;
-      const str = inputNumber.value;
-      const unsafeINT = Number.parseInt(str);
-      if (
-        Number.isSafeInteger(unsafeINT) &&
-        unsafeINT > 0 &&
-        unsafeINT <= pagination.pageNumberCount
-      ) {
-        inputNumber.value = "";
-        const newPagination: PaginationFace = {
-          count: pagination.count,
-          pageNumber: unsafeINT,
-          pageNumberCount: pagination.pageNumberCount,
-          pageSize: pagination.pageSize
-        };
-        setPagination(newPagination);
-      } else {
-        window.api.dialog.SecondaryConfirmation({ message: "请输入正确页码" });
-      }
-    } else {
-      window.api.dialog.SecondaryConfirmation({ message: "not found" });
-    }
-    // const index
-  }
-
   return (
     <div className={[style["base"], style["base-flex"]].join(" ")}>
       <Aside fileInfo={fileInfo} />
-      <div className={style["image-box"]} id="image-box">
-        {src && <img height={imageScle.height} width={imageScle.width} src={src}></img>}
-      </div>
-
+      <ViewImage src={src} resolution={fileInfo.resolution} />
       <div className={style["control-panle"]}>
         <Button type="dark" block onClick={lastPage}>
           回到上一步
@@ -555,46 +436,7 @@ function ViewImagePage() {
           </div>
         </div>
       </div>
-      <Modal visible={listV} onCancel={closeList}>
-        <div className={style["modal-body"]}>
-          <div className={style["modal-title"]}>
-            <h1>整理列表</h1>
-            <Button onClick={closeList}>关闭</Button>
-          </div>
-          {/* table head */}
-          <table className={style["table"]}>
-            <thead className={style["table-thead"]}>
-              <tr>
-                <td>序号</td>
-                <td>缩略图</td>
-                <td>文件名</td>
-                <td>处理方式</td>
-              </tr>
-            </thead>
-            <tbody>{renderList()}</tbody>
-          </table>
-          <div>
-            <span>{`${pagination.pageNumber}/${pagination.pageNumberCount}`}</span>
-            <Button type="dark" onClick={lastTablePage}>
-              上一页
-            </Button>
-            <Button type="dark" onClick={nextTablePage}>
-              下一页
-            </Button>
-            <input
-              autoComplete="off"
-              className={style["input-number"]}
-              id="tablePageNumber"
-              max={pagination.pageNumberCount}
-              min={1}
-              type="number"
-            />
-            <Button type="dark" onClick={toPageNumber}>
-              跳转
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ModalTable visible={listV} onCancel={closeList} listData={listData} dirPath={store.dirpath} />
 
       <Modal visible={classificationModal.visible} onCancel={closeList}>
         <div>

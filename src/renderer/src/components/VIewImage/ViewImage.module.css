@@ -1,0 +1,42 @@
+.image-box {
+  background-color: #2c2c2c;
+  overflow: hidden;
+  flex: 1 1;
+
+  /* display: block; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: relative;
+
+  overflow: hidden;
+}
+
+.img-darg {
+  width: 100%;
+  height: 100%;
+}
+
+.img {
+  user-select: none;
+  /* vertical-align: middle;
+  vertical-align: none; */
+}
+.img-grab {
+  cursor: grab;
+}
+
+.floating-window {
+  position: absolute;
+  bottom: 20px;
+  right: 0px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.floating-window > div,
+.floating-window > button {
+  margin-right: 20px;
+}

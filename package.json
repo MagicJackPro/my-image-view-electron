@@ -1,9 +1,9 @@
 {
-  "name": "electron-app",
-  "version": "1.0.1",
+  "name": "my-image-view-electron",
+  "version": "1.0.2",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "MagicJack",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
@@ -50,5 +50,11 @@
     "react-dom": "^19.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.2.6"
+  },
+  "build": {
+    "appId": "MagicJack.imageViewElectron",
+    "mac": {
+      "category": "MagicJack.app.imageViewElectron.type"
+    }
   }
 }

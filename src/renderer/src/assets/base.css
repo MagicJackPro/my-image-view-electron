@@ -2,7 +2,12 @@
   --page-background-color: #181818;
   --color: #c2c2c2;
 
+  --input-active-color: #ffffff;
+  --input-active-background-color: #4096ff;
   --input-hover-color: #4096ff;
+  --input-border-color: #bbbbbb;
+  --input-background-color: #434343;
+  --input-background-button: #363636;
 }
 
 #root {
@@ -13,7 +18,7 @@
   /* -webkit-app-region: drag;
   -weebkit-user-select: none; */
 }
-html{
+html {
   min-width: 400px;
   min-height: 270px;
 }

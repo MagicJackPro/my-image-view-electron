@@ -1,0 +1,78 @@
+
+.modal-body {
+  width: 600px;
+  height: 600px;
+}
+
+.modal-title {
+  min-width: 600px;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.button-div button {
+  height: auto;
+  /* font-size: 14px; */
+  white-space: wrap;
+  word-wrap: break-word;
+}
+
+.modal-title h1 {
+  color: var(--color);
+}
+
+.table {
+  empty-cells: show;
+  border-collapse: collapse;
+}
+
+.table-thead {
+  background-color: #202020;
+}
+.table-thead > tr > td {
+  height: 30px;
+  color: var(--color);
+  text-align: center;
+  border-right: #cccccc 1px solid;
+}
+.table-thead > tr > td:last-child {
+  border-right: none;
+}
+
+.table-thead > tr > td:nth-child(1) {
+  width: 60px;
+}
+
+.table-thead > tr > td:nth-child(2) {
+  width: 120px;
+}
+.table-thead > tr > td:nth-child(3) {
+  width: 300px;
+}
+
+.table-thead > tr > td:nth-child(4) {
+  width: 120px;
+}
+
+.img {
+  max-height: 80px;
+  max-width: 100px;
+}
+
+.table > tbody > tr:nth-child(odd) {
+  background-color: #434343;
+}
+.table > tbody > tr:nth-child(even) {
+  background-color: #282828;
+}
+
+.table > tbody > tr > td {
+  height: 100px;
+  color: var(--color);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: clip;
+}

@@ -1,9 +1,13 @@
 .base {
   background-color: #181818;
   flex: 0 0 300px;
+  width: 300px;
+  overflow: hidden;
 }
 
 .record {
+  width: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: row;
 }
@@ -28,8 +32,12 @@
   flex: 1 1;
 }
 .record-label {
+  width: 100%;
   color: #ffffff;
 }
 .record-value {
+  max-width: 100%;
+  word-wrap:normal;
+  overflow-wrap: anywhere;
   color: #bcbcbc;
 }
