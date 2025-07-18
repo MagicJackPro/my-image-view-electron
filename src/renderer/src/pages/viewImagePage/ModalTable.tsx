@@ -10,7 +10,7 @@ export interface Record {
   /** 处理方式 */
   processingMethod: string;
   /** 输出目录名称 */
-  outputDirName: string;
+  outputDirName: string[];
 }
 
 interface CurrentRecord extends Record {
@@ -105,10 +105,12 @@ export default function ModalTable(params: ModalTableFace) {
               <span>加载中</span>
             )}
           </td>
-          <td>{value.name}</td>
+          <td>
+            <p>{value.name}</p>
+          </td>
           <td>
             <p>{value.processingMethod}</p>
-            <p>{value.outputDirName}</p>
+            <p>{value.outputDirName.join("\\")}</p>
           </td>
         </tr>
       );
@@ -170,21 +172,29 @@ export default function ModalTable(params: ModalTableFace) {
       <div className={style["modal-body"]}>
         <div className={style["modal-title"]}>
           <h1>整理列表</h1>
-          <Button onClick={onCancel}>关闭</Button>
+          <Button type="dark" onClick={onCancel}>关闭</Button>
         </div>
         {/* table head */}
         <table className={style["table"]}>
           <thead className={style["table-thead"]}>
             <tr>
-              <td>序号</td>
-              <td>缩略图</td>
-              <td>文件名</td>
-              <td>处理方式</td>
+              <th>
+                <span>序号</span>
+              </th>
+              <th>
+                <span>缩略图</span>
+              </th>
+              <th>
+                <span>文件名</span>
+              </th>
+              <th>
+                <span>处理方式</span>
+              </th>
             </tr>
           </thead>
           <tbody>{renderList()}</tbody>
         </table>
-        <div>
+        <div className={style["pagination"]}>
           <span>{`${pagination.pageNumber}/${pagination.pageNumberCount}`}</span>
           <Button type="dark" onClick={lastTablePage}>
             上一页

@@ -2,9 +2,19 @@ import { useEffect, createRef, useState, useMemo, useRef } from "react";
 import type { MouseEvent } from "react";
 import style from "./ViewImage.module.css";
 import Button from "../Button/Button";
-import { FullWindow, Reduction, Enlargement, Reset } from "@renderer/assets/icon/icon";
+import {
+  FullWindow,
+  Reduction,
+  Enlargement,
+  Reset,
+  PictureIsCenter
+} from "@renderer/assets/icon/icon";
 import Select from "@renderer/components/Select/Select";
-import type { OptionFace } from "@renderer/components/Select/Select";
+
+interface OptionFace {
+  label: string;
+  value: number;
+}
 
 interface ViewImageFace {
   src: string;
@@ -78,10 +88,8 @@ export default function ViewImage(params: ViewImageFace) {
   }, [src]);
 
   function resetSize(value: OptionFace) {
-    const newPercentage = value.value as number;
+    const newPercentage = value.value;
     setImageScle({
-      // width: (resolution.width * newPercentage) / 100,
-      // height: (resolution.height * newPercentage) / 100,
       width: resolution.width,
       height: resolution.height,
       Percentage: newPercentage,
@@ -115,7 +123,6 @@ export default function ViewImage(params: ViewImageFace) {
 
   function handleMouseMove(event: MouseEvent) {
     if (mouseDown.current && canMove.current && imgRef.current) {
-
       const xDifference = event.clientX - lastMouseMovePoint.current.x;
       const yDifference = event.clientY - lastMouseMovePoint.current.y;
       lastMouseMovePoint.current = { x: event.clientX, y: event.clientY };
@@ -133,10 +140,32 @@ export default function ViewImage(params: ViewImageFace) {
   }
 
   function resetTranslate() {
-     if (imgRef.current) {
-          translateRef.current = { x: 0, y: 0 };
-          imgRef.current.style = translateImageStyle(imageScle.Percentage, {x:0,y:0}, canMove.current);
-        }
+    setImageScle((origin) => {
+      return {
+        ...origin,
+        Percentage: origin.AdaptivePercentage
+      };
+    });
+
+    if (imgRef.current) {
+      translateRef.current = { x: 0, y: 0 };
+      imgRef.current.style = translateImageStyle(
+        imageScle.AdaptivePercentage,
+        { x: 0, y: 0 },
+        canMove.current
+      );
+    }
+  }
+
+  function thePictureIsCenter() {
+    if (imgRef.current) {
+      translateRef.current = { x: 0, y: 0 };
+      imgRef.current.style = translateImageStyle(
+        imageScle.Percentage,
+        { x: 0, y: 0 },
+        canMove.current
+      );
+    }
   }
 
   const Options: OptionFace[] = useMemo(() => {
@@ -155,15 +184,43 @@ export default function ViewImage(params: ViewImageFace) {
     const tempValue = imageScle.AdaptivePercentage;
 
     if (defaultOptions.findIndex((option) => option.value === tempValue) === -1) {
-      return (
-        [
-          { label: `${imageScle.AdaptivePercentage}%`, value: imageScle.AdaptivePercentage }
-        ] as OptionFace[]
-      ).concat(defaultOptions);
+      return [
+        { label: `${imageScle.AdaptivePercentage}%`, value: imageScle.AdaptivePercentage }
+      ].concat(defaultOptions);
     }
     return defaultOptions;
   }, [imageScle.AdaptivePercentage]);
 
+  /** 缩小 */
+  function reductionPicture() {
+    const foundIndex = Options.findIndex((option) => option.value === imageScle.Percentage);
+    if (foundIndex > 1) {
+      const tempVal = Options[foundIndex - 1].value;
+      if (tempVal < imageScle.Percentage) {
+        resetSize(Options[foundIndex - 1]);
+      }
+    }
+  }
+
+  /** 放大 */
+  function enlargementPicture() {
+    const foundIndex = Options.findIndex((option) => option.value === imageScle.Percentage);
+    if (foundIndex === -1 || foundIndex + 1 === Options.length) return;
+    const tempVal = Options[foundIndex].value;
+    for (let index = foundIndex + 1; index < Options.length; index++) {
+      if (tempVal < Options[index].value) {
+        resetSize(Options[index]);
+        break;
+      }
+    }
+  }
+
+  /** 全屏 */
+  function handleFullWindow() {
+    window.api.dialog.SecondaryConfirmation({message:"开发中"})
+  }
+
+  // TODO 触摸事件
   if (src) {
     return (
       <div ref={boxRef} className={style["image-box"]}>
@@ -180,18 +237,24 @@ export default function ViewImage(params: ViewImageFace) {
           width={imageScle.width}
         />
         <div className={style["floating-window"]}>
-          <Button type="dark" icon={<Enlargement />} shape="circle" />
-          <Select
-            defaultValue={imageScle.AdaptivePercentage}
+          <Button type="dark" icon={<Enlargement />} shape="circle" onClick={enlargementPicture} />
+          <Select<OptionFace>
+            value={imageScle.Percentage}
             placement="topRight"
             options={Options}
             onChange={resetSize}
           />
-          <Button type="dark" icon={<Reduction />} shape="circle" />
+          <Button type="dark" icon={<Reduction />} shape="circle" onClick={reductionPicture} />
 
           <Button type="dark" icon={<Reset />} shape="circle" onClick={resetTranslate} />
+          <Button
+            type="dark"
+            icon={<PictureIsCenter />}
+            shape="circle"
+            onClick={thePictureIsCenter}
+          />
 
-          <Button type="dark" icon={<FullWindow />} shape="circle" />
+          <Button type="dark" icon={<FullWindow />} shape="circle" onClick={handleFullWindow} />
         </div>
       </div>
     );

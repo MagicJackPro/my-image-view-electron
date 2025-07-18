@@ -1,10 +1,12 @@
 import { contextBridge } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
 import DialogAPI from "./dialog";
+import FSAPI from "./fs";
 
 // Custom APIs for renderer
 const api = {
-  dialog: DialogAPI
+  dialog: DialogAPI,
+  fs: FSAPI
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

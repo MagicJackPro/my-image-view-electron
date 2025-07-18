@@ -1,0 +1,16 @@
+.button-div {
+  display: grid;
+  grid: auto-flow 50px / repeat(2, 100px);
+  grid-row-gap: 20px;
+  grid-column-gap: 20px;
+}
+
+.button-div > button {
+  height: auto;
+  /* font-size: 14px; */
+  white-space: wrap;
+  word-wrap: break-word;
+
+  display: flex;
+  flex-direction: column;
+}

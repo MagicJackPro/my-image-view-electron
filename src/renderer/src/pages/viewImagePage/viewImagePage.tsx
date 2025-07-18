@@ -1,51 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useStore } from "@renderer/hook/useStores";
-import store from "@renderer/store/store";
 import Aside from "@renderer/components/Aside/Aside";
 import type { AsideFace } from "@renderer/components/Aside/Aside";
 import style from "./viewImagePage.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
-import ViewImage from '@renderer/components/VIewImage/ViewImage'
+import ViewImage from "@renderer/components/VIewImage/ViewImage";
 
-import ModalTable from './ModalTable';
-import type {Record} from './ModalTable';
-
-type ProcessingMethodObjectKey =
-  | "avatar"
-  | "delete"
-  | "HMoblie"
-  | "HPC"
-  | "Moblie"
-  | "other"
-  | "PC"
-  | "seMoblie"
-  | "sePC"
-  | "Square"
-  | "ThrowPillow";
-type ProcessingMethodObjectFace = {
-  [key in ProcessingMethodObjectKey]: { label: string; dirName: string };
-};
+import ModalTable from "./ModalTable";
+import type { Record } from "./ModalTable";
+import FilterFiles from "./FilterFiles";
+import ButtonPanle from "./ButtonPanle";
+import type { ButtonRecordFace } from "./ButtonPanle";
 
 type MediaTypeT = "PC" | "Mobile" | "1x1";
 
 const OutHeight = 1080;
 const OutWidth = 1920;
-
-const processingMethodObject: ProcessingMethodObjectFace = {
-  avatar: { label: "头像", dirName: "头像" },
-  delete: { label: "不要了", dirName: "待删除" },
-  HMoblie: { label: "H图Moblie", dirName: "H图Moblie" },
-  HPC: { label: "H图PC", dirName: "H图PC" },
-  Moblie: { label: "Moblie", dirName: "Moblie" },
-  other: { label: "其他", dirName: "其他" },
-  PC: { label: "PC", dirName: "PC" },
-  seMoblie: { label: "色图Moblie", dirName: "色图Moblie" },
-  sePC: { label: "色图PC", dirName: "色图PC" },
-  Square: { label: "1比1图", dirName: "1x1" },
-  ThrowPillow: { label: "抱枕", dirName: "抱枕" }
-};
 
 const invoke = window.electron.ipcRenderer.invoke;
 function ViewImagePage() {
@@ -78,12 +50,8 @@ function ViewImagePage() {
     canClose: false
   });
 
-  useEffect(() => {
-    invoke("fc:ls", Store.dirpath).then((files) => {
-      setFiles(files);
-      setLoading(false);
-    });
-  }, []);
+  const disableRef = useRef(true);
+  const haveOutputFolders = useRef<boolean[]>([]);
 
   useEffect(() => {
     if (src) {
@@ -91,7 +59,7 @@ function ViewImagePage() {
       setSRC("");
     }
     if (files.length > 0 && files.length >= pictureIndex + 1) {
-      const filePath = store.dirpath + "\\" + files[pictureIndex];
+      const filePath = Store.dirpath + "\\" + files[pictureIndex];
       const fileName = files[pictureIndex];
       invoke("fc:readPicture", filePath).then((file) => {
         const fileSize = (file.buffer.length / 1024).toFixed(2).toString() + "KiB";
@@ -113,7 +81,7 @@ function ViewImagePage() {
               ? "Mobile"
               : "PC";
         setMediaType(newMediaType);
-
+        disableRef.current = false;
       });
       // setSRC('local-resource:' + store.dirpath + '\\' + files[0]);
     }
@@ -124,6 +92,13 @@ function ViewImagePage() {
       }
     };
   }, [pictureIndex, files]);
+
+  /** 加载完毕 */
+  function loaded(files: string[]) {
+    haveOutputFolders.current = files.map(() => false);
+    setLoading(false);
+    setFiles(files);
+  }
 
   /** 返回选择文件夹页面 */
   function lastPage() {
@@ -185,7 +160,20 @@ function ViewImagePage() {
     const length = listData.length;
     if (length < files.length) {
       const dValue = files.length - listData.length;
-      window.api.dialog.SecondaryConfirmation({ message: `还差${dValue}张图片没有选择分类。` });
+      const length = haveOutputFolders.current.length;
+      /** 没有分类的图片编号数组 */
+      const arr: number[] = [];
+      for (let index = 0; index < length; index++) {
+        if (!haveOutputFolders.current[index]) {
+          arr.push(index + 1);
+        }
+        if (arr.length > 4) {
+          break;
+        }
+      }
+      window.api.dialog.SecondaryConfirmation({
+        message: `还差${dValue}张图片没有选择分类，前${arr.length}个图片编号分别是${arr.join("、")}。`
+      });
       return;
     } else if (length !== files.length) {
       console.error("listData 意外的数据");
@@ -204,7 +192,7 @@ function ViewImagePage() {
         startTimeText: now.toUTCString()
       };
     });
-    const dirPath = store.dirpath;
+    const dirPath = Store.dirpath;
     for (let index = 0; index < length; index++) {
       await invoke("fc:classification", dirPath, copyList[index]);
       if (index >= length - 1) {
@@ -230,17 +218,23 @@ function ViewImagePage() {
 
   if (isLoading) {
     return (
-      <div className={style["base"]}>
-        <div>
-          <span>加载数据中</span>
-        </div>
-        <button onClick={lastPage}>回到上一步</button>
-      </div>
+      <FilterFiles
+        dirPath={Store.dirpath}
+        onDone={loaded}
+        // onDone={(files) => {
+        //   setLoading(false);
+        //   setFiles(files);
+        // }}
+        onlastPage={() => {
+          navigate("/");
+        }}
+      />
     );
   }
 
-
-  function addListData(processingMethod: ProcessingMethodObjectKey) {
+  function addListData(buttonInfo: ButtonRecordFace) {
+    if (disableRef.current) return;
+    disableRef.current = true;
     if (!fileInfo.fileName) {
       window.api.dialog.SecondaryConfirmation({
         message: "function addListData loss fileInfo.fileName"
@@ -248,56 +242,71 @@ function ViewImagePage() {
       return;
     }
 
+    let outputDirName = [buttonInfo.folderName];
+
     //#region 计算放大
-    // console.log("计算放大");
-    const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
-    const targetPC = resolution.width > resolution.height ? true : false;
-    const target = targetPC
-      ? { height: OutHeight, width: OutWidth }
-      : { height: OutWidth, width: OutHeight };
-    const widthDifference = target.width > resolution.width ? target.width - resolution.width : 0;
-    const heightDifference =
-      target.height > resolution.height ? target.height - resolution.height : 0;
-    // console.log(`widthDifference:`, widthDifference);
-    // console.log(`heightDifference:`, heightDifference);
-    /** 倍率 */
-    let Magnification = 1;
-    let lowValue = 0;
-    let targetValue = 0;
-    if (widthDifference > heightDifference) {
-      // console.log("select width");
+    if (buttonInfo.calculateTheMagnification) {
+      // console.log("计算放大");
+      const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
+      const targetPC = resolution.width > resolution.height ? true : false;
+      const target = targetPC
+        ? { height: OutHeight, width: OutWidth }
+        : { height: OutWidth, width: OutHeight };
+      const widthDifference = target.width > resolution.width ? target.width - resolution.width : 0;
+      const heightDifference =
+        target.height > resolution.height ? target.height - resolution.height : 0;
+      // console.log(`widthDifference:`, widthDifference);
+      // console.log(`heightDifference:`, heightDifference);
+      /** 倍率 */
+      let Magnification = 1;
+      let lowValue = 0;
+      let targetValue = 0;
+      if (widthDifference > heightDifference) {
+        // console.log("select width");
 
-      targetValue = target.width;
-      lowValue = resolution.width;
-    } else if (heightDifference > widthDifference) {
-      // console.log("select height");
-      targetValue = target.height;
-      lowValue = resolution.height;
-    }
+        targetValue = target.width;
+        lowValue = resolution.width;
+      } else if (heightDifference > widthDifference) {
+        // console.log("select height");
+        targetValue = target.height;
+        lowValue = resolution.height;
+      }
 
-    // console.log(`resolution:${resolution.width}x${resolution.height}`);
+      // console.log(`resolution:${resolution.width}x${resolution.height}`);
 
-    // console.log(`Magnification:`, Magnification);
-    // console.log(`lowValue:`, lowValue);
-    // console.log(`targetValue:`, targetValue);
-    if (lowValue !== 0) {
-      for (Magnification = 1; Magnification < 4; Magnification++) {
-        if (Magnification * lowValue >= targetValue) {
-          break;
+      // console.log(`Magnification:`, Magnification);
+      // console.log(`lowValue:`, lowValue);
+      // console.log(`targetValue:`, targetValue);
+      if (lowValue !== 0) {
+        for (Magnification = 1; Magnification < 4; Magnification++) {
+          if (Magnification * lowValue >= targetValue) {
+            break;
+          }
         }
       }
+      outputDirName.push(buttonInfo.folderName + "x" + Magnification);
     }
+    //#endregion
 
-    const outputDirName =
-      Magnification === 1
-        ? processingMethodObject[processingMethod].dirName
-        : processingMethodObject[processingMethod].dirName + "x" + Magnification;
-
+    //#region 自动分类
+    if (buttonInfo.aspectRatioClassification) {
+      const height = fileInfo.resolution.height;
+      const width = fileInfo.resolution.width;
+      let aspectRatio = "unkown";
+      if (width === height) {
+        aspectRatio = "1x1";
+      } else if (width > height) {
+        aspectRatio = "宽屏";
+      } else {
+        aspectRatio = "竖屏";
+      }
+      outputDirName.splice(1, 0, aspectRatio);
+    }
     //#endregion
 
     const newRecord: Record = {
       name: fileInfo.fileName,
-      processingMethod: processingMethodObject[processingMethod].label,
+      processingMethod: buttonInfo.label,
       outputDirName
     };
 
@@ -307,51 +316,8 @@ function ViewImagePage() {
         ? listData.concat([newRecord])
         : [...listData.slice(0, findIndex), newRecord, ...listData.slice(findIndex + 1)];
     setListData(newListData);
+    haveOutputFolders.current[pictureIndex] = true;
     nextPicture();
-  }
-
-  function deletePicture() {
-    return addListData("delete");
-  }
-
-  function otherPicture() {
-    return addListData("other");
-  }
-
-  function pcPicture() {
-    return addListData("PC");
-  }
-
-  function mobliePicture() {
-    return addListData("Moblie");
-  }
-
-  function squarePicture() {
-    return addListData("Square");
-  }
-
-  function seMobliePicture() {
-    return addListData("seMoblie");
-  }
-
-  function sePCPicture() {
-    return addListData("sePC");
-  }
-
-  function hMobliePicture() {
-    return addListData("HMoblie");
-  }
-
-  function hPCPicture() {
-    return addListData("HPC");
-  }
-
-  function avatarPicture() {
-    return addListData("avatar");
-  }
-
-  function throwPillowPicture() {
-    return addListData("ThrowPillow");
   }
 
   return (
@@ -379,10 +345,10 @@ function ViewImagePage() {
         </div>
         <div>
           <Button type="dark" onClick={lastPicture}>
-            上一张图片
+            上一张
           </Button>
           <Button type="dark" onClick={nextPicture}>
-            下一张图片
+            下一张
           </Button>
         </div>
         <div>
@@ -395,50 +361,16 @@ function ViewImagePage() {
             执行
           </Button>
         </div>
-        <div>
-          <div>
-            <p>特殊</p>
-            <div className={style["button-div"]}>
-              <Button type="dark" onClick={deletePicture}>
-                不要了(0)
-              </Button>
-              <Button type="dark" onClick={pcPicture}>
-                PC(1)
-              </Button>
-              <Button type="dark" onClick={mobliePicture}>
-                Moblie(2)
-              </Button>
-              <Button type="dark" onClick={squarePicture}>
-                1:1图(3)
-              </Button>
-              <Button type="dark" onClick={seMobliePicture}>
-                色图Moblie(4)
-              </Button>
-              <Button type="dark" onClick={sePCPicture}>
-                色图PC(5)
-              </Button>
-              <Button type="dark" onClick={hMobliePicture}>
-                H图Moblie(6)
-              </Button>
-              <Button type="dark" onClick={hPCPicture}>
-                H图PC(7)
-              </Button>
-              <Button type="dark" onClick={avatarPicture}>
-                头像(8)
-              </Button>
-              <Button type="dark" onClick={throwPillowPicture}>
-                抱枕(9)
-              </Button>
-              <Button type="dark" onClick={otherPicture}>
-                其他(+)
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ButtonPanle onClick={addListData} />
       </div>
-      <ModalTable visible={listV} onCancel={closeList} listData={listData} dirPath={store.dirpath} />
+      <ModalTable
+        visible={listV}
+        onCancel={closeList}
+        listData={listData}
+        dirPath={Store.dirpath}
+      />
 
-      <Modal visible={classificationModal.visible} onCancel={closeList}>
+      <Modal visible={classificationModal.visible} onCancel={() => {}}>
         <div>
           <p>
             <span>{classificationModal.index + 1}</span>

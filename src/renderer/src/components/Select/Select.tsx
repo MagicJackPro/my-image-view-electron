@@ -7,40 +7,43 @@ type PlacementType = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 
 export interface OptionFace {
   label: string;
-  value: string | number;
+  value: string|number;
 }
 
-interface SelectFace {
-  options: OptionFace[];
+interface SelectFace<T> {
+  options: (T & OptionFace)[];
   defaultValue?: string | number;
-  onChange?: (option: OptionFace) => void;
+  onChange?: (option:T) => void;
   placement?: PlacementType;
+  value?: string | number;
 }
-
-export default function Select(params: SelectFace) {
-  const { defaultValue, options, placement = "bottomLeft", onChange } = params;
+export default function Select<T = OptionFace>(params: SelectFace<T>) {
+  const { defaultValue, value, options, placement = "bottomLeft", onChange } = params;
 
   const [visible, setVisible] = useState(false);
-  const [value, setValue] = useState<OptionFace | undefined>();
+  const [internalValue, setInternalValue] = useState<OptionFace| undefined>();
 
   useEffect(() => {
-    if (defaultValue) {
-      const found = options.find((option) => option.value === defaultValue);
-      if (found) {
-        setValue(found);
-      }
+    const tmpVal = value ? value : defaultValue;
+    const found = options.find((option) => option.value === tmpVal);
+    if (found) {
+      setInternalValue(found);
+    } else {
+      setInternalValue(undefined);
     }
-  }, [defaultValue]);
+  }, [value, defaultValue]);
 
   function renderOptions() {
     const baseClassName = style["select-option"];
     return options.map((option) => {
       const className = [
-        option.value === value?.value ? style["select-option-active"] : "",
+        option.value === internalValue?.value ? style["select-option-active"] : "",
         baseClassName
       ].join(" ");
       function optionClick() {
-        setValue(option);
+        if (!value) {
+          setInternalValue(option);
+        }
         closeOptions();
         if (onChange) onChange(option);
       }
@@ -82,7 +85,7 @@ export default function Select(params: SelectFace) {
     <div className={style["select"]}>
       <div className={style["select-selector"]} onClick={showOptions}>
         <span className={style["seleclt-selector-label"]}>
-          <span>{value?.label}</span>
+          <span>{internalValue?.label}</span>
         </span>
         <span className={style["select-selector-icon"]}>
           <Arrow />

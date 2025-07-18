@@ -1,34 +1,31 @@
 import { ipcMain, dialog } from "electron";
 import { fileTypeFromFile, fileTypeFromBuffer } from "file-type";
-import { readdir, readFile, copyFile, access, mkdir } from "node:fs/promises";
+import { readdir, readFile, copyFile, access, mkdir, appendFile } from "node:fs/promises";
 import { imageSize } from "image-size";
 
-ipcMain.handle("fc:ls", async (_IpcMainInvokeEvent, path: string) => {
+ipcMain.handle("fc:readdir", (_IpcMainInvokeEvent, folderPath: string) => {
   try {
-    const files = await readdir(path);
-    return files;
+    return readdir(folderPath);
   } catch (error) {
-    console.error(error);
-    return Promise.reject(error);
+    return Promise.reject(new Error("Failed to read the folder"));
   }
 });
 
-ipcMain.handle("fc:readFileType", async (_IpcMainInvokeEvent, path: string) => {
+ipcMain.handle("fc:readFileType", async (_IpcMainInvokeEvent, filePath: string) => {
   try {
-    const typeData = await fileTypeFromFile(path);
-    if (typeData) {
-      return typeData;
+    const typeData = await fileTypeFromFile(filePath);
+    if (typeData === undefined) {
+      throw new Error("Failed to read the file type");
     }
-    return "";
+    return typeData;
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     return Promise.reject(error);
   }
 });
 
 ipcMain.handle("fc:readPicture", async (_IpcMainInvokeEvent, path: string) => {
   try {
-    // const fileHandle = await open(path,"r")
     const fileBuffer = await readFile(path);
     const type = await fileTypeFromBuffer(fileBuffer);
     const resolution = imageSize(fileBuffer);
@@ -50,7 +47,7 @@ ipcMain.handle("fc:selectDir", async () => {
     if (OpenDialogReturnValue.filePaths.length > 0) {
       return OpenDialogReturnValue.filePaths[0];
     }
-    return ""
+    return "";
   } catch (error) {
     console.error(error);
     return Promise.reject(error);
@@ -71,22 +68,41 @@ interface Record {
   /** 处理方式 */
   processingMethod: string;
   /** 输出目录名称 */
-  outputDirName: string;
+  outputDirName: string[];
 }
 
 ipcMain.handle(
   "fc:classification",
   async (_IpcMainInvokeEvent, dirPath: string, record: Record) => {
-    const source = `${dirPath}\\${record.name}`;
-    const target = `${dirPath}\\${record.outputDirName}\\${record.name}`;
-    {
-      const outputDir = `${dirPath}\\${record.outputDirName}`;
+    // 检查输出目录是否存在，没有创建
+    const needMakeDir: string[] = [];
+    const outputDirName = record.outputDirName;
+    for (let index = 0; index < outputDirName.length; index++) {
+      const tempPath = dirPath + "\\" + outputDirName.slice(0, index + 1).join("\\");
       try {
-        await access(outputDir);
+        await access(tempPath);
       } catch (error) {
-        await mkdir(outputDir);
+        needMakeDir.push(tempPath);
       }
     }
+
+    if (needMakeDir.length) {
+      for (let index = 0; index < needMakeDir.length; index++) {
+        await mkdir(needMakeDir[index]);
+      }
+    }
+    const source = `${dirPath}\\${record.name}`;
+    const target = `${dirPath}\\${record.outputDirName.join("\\")}\\${record.name}`;
     await copyFile(source, target);
   }
 );
+
+/** 生成JSON文件 */
+ipcMain.handle("fc:saveJSON", (_IpcMainInvokeEvent, savePath: string, data: string) => {
+  return appendFile(savePath, data, { encoding: "utf-8" });
+});
+
+/** 读取JSON */
+ipcMain.handle("fc:readJSON", (_IpcMainInvokeEvent, jsonPath: string) => {
+  return readFile(jsonPath, { encoding: "utf-8" });
+});

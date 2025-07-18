@@ -1,7 +1,3 @@
-// function SecondaryConfirmation(
-//   config: Electron.MessageBoxOptions
-// ): Promise<Electron.MessageBoxReturnValue>;
-
 declare interface DialogAPI {
   /** 对话框 MessageBox Electron api
    * @param {Electron.MessageBoxOptions} config
@@ -10,5 +6,3 @@ declare interface DialogAPI {
     config: Electron.MessageBoxOptions
   ) => Promise<Electron.MessageBoxReturnValue>;
 }
-
-// export default DialogAPI;
