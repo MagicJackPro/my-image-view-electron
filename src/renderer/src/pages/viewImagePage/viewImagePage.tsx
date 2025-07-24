@@ -7,6 +7,8 @@ import style from "./viewImagePage.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 import ViewImage from "@renderer/components/VIewImage/ViewImage";
+import { useMessage } from "@renderer/components/Message/Message";
+import Collapse from "@renderer/components/Collapse/Collapse";
 
 import ModalTable from "./ModalTable";
 import type { Record } from "./ModalTable";
@@ -14,17 +16,29 @@ import FilterFiles from "./FilterFiles";
 import ButtonPanle from "./ButtonPanle";
 import type { ButtonRecordFace } from "./ButtonPanle";
 
-type MediaTypeT = "PC" | "Mobile" | "1x1";
+interface FileFace {
+  id: number;
+  /** 文件名 */
+  name: string;
+}
 
 const OutHeight = 1080;
 const OutWidth = 1920;
 
+function formatDate(date: Date) {
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const second = date.getSeconds();
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hour > 9 ? hour : "0" + hour}:${minute > 9 ? minute : "0" + minute}:${second > 9 ? second : "0" + second}`;
+}
+
 const invoke = window.electron.ipcRenderer.invoke;
 function ViewImagePage() {
+  const MessageAPI = useMessage();
   const Store = useStore();
   const navigate = useNavigate();
   const [isLoading, setLoading] = useState(true);
-  const [files, setFiles] = useState<string[]>([]);
+  const [files, setFiles] = useState<FileFace[]>([]);
   const [fileInfo, setFileInfo] = useState<AsideFace>({
     filePath: "",
     fileName: "",
@@ -34,7 +48,6 @@ function ViewImagePage() {
   });
   const [src, setSRC] = useState("");
   const [pictureIndex, setPictureIndex] = useState(0);
-  const [mediaType, setMediaType] = useState<MediaTypeT>("PC");
   const [listV, setListV] = useState(false);
   /** 整理列表 */
   const [listData, setListData] = useState<Record[]>([]);
@@ -59,30 +72,31 @@ function ViewImagePage() {
       setSRC("");
     }
     if (files.length > 0 && files.length >= pictureIndex + 1) {
-      const filePath = Store.dirpath + "\\" + files[pictureIndex];
-      const fileName = files[pictureIndex];
-      invoke("fc:readPicture", filePath).then((file) => {
-        const fileSize = (file.buffer.length / 1024).toFixed(2).toString() + "KiB";
-        const resolution = { width: file.resolution.width, height: file.resolution.height };
-        setFileInfo({
-          filePath,
-          fileName,
-          fileSize,
-          ceateTime: "",
-          resolution
-        });
-        setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type })));
+      const fileName = files[pictureIndex].name;
+      const filePath = Store.dirpath + "\\" + fileName;
+      try {
+        window.api.fs.readPicture(filePath).then((file) => {
+          const fileSize = (file.buffer.length / 1024).toFixed(2).toString() + "KiB";
+          const resolution = { width: file.resolution.width, height: file.resolution.height };
+          setFileInfo({
+            filePath,
+            fileName,
+            fileSize,
+            ceateTime: formatDate(file.stats.birthtime),
+            resolution
+          });
+          setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type.mime })));
 
-        // 计算MediaType
-        const newMediaType: MediaTypeT =
-          resolution.width === resolution.height
-            ? "1x1"
-            : resolution.height > resolution.width
-              ? "Mobile"
-              : "PC";
-        setMediaType(newMediaType);
-        disableRef.current = false;
-      });
+          disableRef.current = false;
+        });
+      } catch (error) {
+        const tempFileName = fileName.length > 10 ? fileName.slice(0, 7) + "..." : fileName;
+        MessageAPI.error({
+          id: "readPicture_error",
+          message: `开图片[${tempFileName}]失败`,
+          duration: 5000
+        });
+      }
       // setSRC('local-resource:' + store.dirpath + '\\' + files[0]);
     }
 
@@ -94,10 +108,42 @@ function ViewImagePage() {
   }, [pictureIndex, files]);
 
   /** 加载完毕 */
-  function loaded(files: string[]) {
-    haveOutputFolders.current = files.map(() => false);
+  function loaded(files: Record[]) {
+    haveOutputFolders.current = [];
+    const newFiles: FileFace[] = [];
+    const newListData: Record[] = [];
+    let newPictureIndex = 0;
+    let index = 0;
+    const length = files.length;
+    for (; index < length; index++) {
+      const record = files[index];
+      newFiles.push({ name: record.name, id: record.id });
+      if (record.outputDirName.length && record.processingMethod) {
+        newListData.push(record);
+        haveOutputFolders.current.push(true);
+      } else {
+        newPictureIndex = index;
+        haveOutputFolders.current.push(false);
+        index++;
+        break;
+      }
+    }
+
+    for (; index < length; index++) {
+      const record = files[index];
+      newFiles.push({ name: record.name, id: record.id });
+      if (record.outputDirName.length && record.processingMethod) {
+        newListData.push(record);
+        haveOutputFolders.current.push(true);
+      } else {
+        haveOutputFolders.current.push(false);
+      }
+    }
+
+    setPictureIndex(newPictureIndex);
+    setFiles(newFiles);
+    setListData(newListData);
     setLoading(false);
-    setFiles(files);
   }
 
   /** 返回选择文件夹页面 */
@@ -120,11 +166,21 @@ function ViewImagePage() {
   function lastPicture() {
     if (pictureIndex > 0) {
       setPictureIndex(pictureIndex - 1);
+    } else {
+      MessageAPI.info({
+        message: "当前已经是第一张",
+        id: "lastPicture"
+      });
     }
   }
   function nextPicture() {
     if (files.length > pictureIndex + 1) {
       setPictureIndex(pictureIndex + 1);
+    } else {
+      MessageAPI.info({
+        message: "当前已经是最后一张",
+        id: "nextPicture"
+      });
     }
   }
 
@@ -176,7 +232,10 @@ function ViewImagePage() {
       });
       return;
     } else if (length !== files.length) {
-      console.error("listData 意外的数据");
+      MessageAPI.error({
+        message: "意外的数据，请反馈问题或等待修复。",
+        id: "listData_error"
+      });
       return;
     }
 
@@ -189,7 +248,7 @@ function ViewImagePage() {
         count: length,
         index: 1,
         startTime: now.getTime(),
-        startTimeText: now.toUTCString()
+        startTimeText: formatDate(now)
       };
     });
     const dirPath = Store.dirpath;
@@ -202,7 +261,7 @@ function ViewImagePage() {
             ...origin,
             index,
             endTime: now.getTime(),
-            endTimeText: now.toUTCString()
+            endTimeText: formatDate(now)
           };
         });
       } else {
@@ -221,10 +280,6 @@ function ViewImagePage() {
       <FilterFiles
         dirPath={Store.dirpath}
         onDone={loaded}
-        // onDone={(files) => {
-        //   setLoading(false);
-        //   setFiles(files);
-        // }}
         onlastPage={() => {
           navigate("/");
         }}
@@ -246,7 +301,6 @@ function ViewImagePage() {
 
     //#region 计算放大
     if (buttonInfo.calculateTheMagnification) {
-      // console.log("计算放大");
       const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
       const targetPC = resolution.width > resolution.height ? true : false;
       const target = targetPC
@@ -255,28 +309,18 @@ function ViewImagePage() {
       const widthDifference = target.width > resolution.width ? target.width - resolution.width : 0;
       const heightDifference =
         target.height > resolution.height ? target.height - resolution.height : 0;
-      // console.log(`widthDifference:`, widthDifference);
-      // console.log(`heightDifference:`, heightDifference);
       /** 倍率 */
       let Magnification = 1;
       let lowValue = 0;
       let targetValue = 0;
       if (widthDifference > heightDifference) {
-        // console.log("select width");
-
         targetValue = target.width;
         lowValue = resolution.width;
       } else if (heightDifference > widthDifference) {
-        // console.log("select height");
         targetValue = target.height;
         lowValue = resolution.height;
       }
 
-      // console.log(`resolution:${resolution.width}x${resolution.height}`);
-
-      // console.log(`Magnification:`, Magnification);
-      // console.log(`lowValue:`, lowValue);
-      // console.log(`targetValue:`, targetValue);
       if (lowValue !== 0) {
         for (Magnification = 1; Magnification < 4; Magnification++) {
           if (Magnification * lowValue >= targetValue) {
@@ -305,19 +349,86 @@ function ViewImagePage() {
     //#endregion
 
     const newRecord: Record = {
+      id: pictureIndex,
       name: fileInfo.fileName,
       processingMethod: buttonInfo.label,
       outputDirName
     };
 
-    const findIndex = listData.findIndex((value) => value.name === newRecord.name);
-    const newListData =
-      findIndex === -1
-        ? listData.concat([newRecord])
-        : [...listData.slice(0, findIndex), newRecord, ...listData.slice(findIndex + 1)];
-    setListData(newListData);
+    const length = listData.length;
+    let index = 0;
+    let haveAdd = true;
+    for (index = 0; index < length; index++) {
+      if (listData[index].id === pictureIndex) {
+        setListData([...listData.slice(0, index), newRecord, ...listData.slice(index + 1)]);
+        haveAdd = false;
+        break;
+      } else if (listData[index].id > pictureIndex) {
+        setListData([...listData.slice(0, index), newRecord, ...listData.slice(index)]);
+        haveAdd = false;
+        break;
+      }
+    }
+    if (haveAdd) {
+      setListData(listData.concat([newRecord]));
+    }
+
     haveOutputFolders.current[pictureIndex] = true;
+    if (pictureIndex + 1 >= files.length) {
+      disableRef.current = false;
+    }
     nextPicture();
+  }
+
+  /** 手动保存 */
+  async function manualSave() {
+    try {
+      if (disableRef.current) return;
+      disableRef.current = true;
+
+      const config: Electron.MessageBoxOptions = {
+        message: "是否保存临时进度",
+        buttons: ["确认", "取消"],
+        defaultId: 1,
+        title: "二次确认：保存临时进度",
+        detail: "此操作会创建文件在选择的文件目录下"
+      };
+
+      const MessageBoxReturnValue = await window.api.dialog.SecondaryConfirmation(config);
+      if (MessageBoxReturnValue.response !== 0) {
+        disableRef.current = false;
+        return;
+      }
+      if (listData.length === files.length) {
+        await invoke("db:create", Store.dirpath);
+        await invoke("db:insertInto", Store.dirpath, listData);
+      } else {
+        const saveData: Record[] = files.map((file) => ({
+          id: file.id,
+          name: file.name,
+          processingMethod: "",
+          outputDirName: []
+        }));
+        listData.forEach((listRecord) => {
+          if (saveData[listRecord.id].outputDirName.length === 0) {
+            saveData[listRecord.id] = listRecord;
+          }
+        });
+        await invoke("db:create", Store.dirpath);
+        await invoke("db:insertInto", Store.dirpath, saveData);
+      }
+      MessageAPI.success({
+        message: "手动保存成功",
+        id: "manualSave"
+      });
+      disableRef.current = false;
+    } catch (error) {
+      disableRef.current = false;
+      MessageAPI.error({
+        message: "手动保存失败",
+        id: "manualSave"
+      });
+    }
   }
 
   return (
@@ -343,7 +454,7 @@ function ViewImagePage() {
             跳转
           </Button>
         </div>
-        <div>
+        <div className={style["flex-row-jc-between"]}>
           <Button type="dark" onClick={lastPicture}>
             上一张
           </Button>
@@ -351,16 +462,20 @@ function ViewImagePage() {
             下一张
           </Button>
         </div>
-        <div>
-          <span>tip:未来准备加入快捷键 TODO {mediaType}</span>
-          <Button type="dark" onClick={showList}>
-            整理列表
-          </Button>
+        <Collapse contentClassName={style["collapse-content"]}>
+          <div className={style["flex-row-jc-between"]}>
+            <Button type="dark" onClick={showList}>
+              整理列表
+            </Button>
 
-          <Button type="dark" onClick={Classification}>
+            <Button type="dark" onClick={manualSave}>
+              临时保存
+            </Button>
+          </div>
+          <Button type="dark" block onClick={Classification}>
             执行
           </Button>
-        </div>
+        </Collapse>
         <ButtonPanle onClick={addListData} />
       </div>
       <ModalTable

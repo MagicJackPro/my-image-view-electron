@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { readFile } from "node:fs/promises";
 import "./fc";
+import "./db";
 
 function createWindow(): void {
   // Create the browser window.
@@ -24,7 +25,7 @@ function createWindow(): void {
           titleBarOverlay: {
             color: "#181818",
             symbolColor: "#ffffff",
-            height: 40
+            height: 39
           }
         }
       : {})

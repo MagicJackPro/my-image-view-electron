@@ -3,7 +3,6 @@
   overflow: hidden;
   flex: 1 1;
 
-  /* display: block; */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -20,8 +19,6 @@
 
 .img {
   user-select: none;
-  /* vertical-align: middle;
-  vertical-align: none; */
 }
 .img-grab {
   cursor: grab;

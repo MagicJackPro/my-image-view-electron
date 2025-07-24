@@ -1,6 +1,7 @@
 import { ipcMain, dialog } from "electron";
 import { fileTypeFromFile, fileTypeFromBuffer } from "file-type";
-import { readdir, readFile, copyFile, access, mkdir, appendFile } from "node:fs/promises";
+import { readdir, copyFile, access, mkdir, open } from "node:fs/promises";
+import { join } from "node:path";
 import { imageSize } from "image-size";
 
 ipcMain.handle("fc:readdir", (_IpcMainInvokeEvent, folderPath: string) => {
@@ -15,23 +16,36 @@ ipcMain.handle("fc:readFileType", async (_IpcMainInvokeEvent, filePath: string) 
   try {
     const typeData = await fileTypeFromFile(filePath);
     if (typeData === undefined) {
-      throw new Error("Failed to read the file type");
+      return Promise.reject("Failed to read the file type");
     }
     return typeData;
   } catch (error) {
-    // console.error(error);
     return Promise.reject(error);
   }
 });
 
 ipcMain.handle("fc:readPicture", async (_IpcMainInvokeEvent, path: string) => {
   try {
-    const fileBuffer = await readFile(path);
+    const fileHandle = await open(path, "r");
+    const fileBuffer = await fileHandle.readFile();
     const type = await fileTypeFromBuffer(fileBuffer);
     const resolution = imageSize(fileBuffer);
-    return { type, resolution, buffer: fileBuffer };
+    const originStats = await fileHandle.stat({ bigint: false });
+
+    const stats = {
+      birthtime: originStats.birthtime,
+      ctime: originStats.ctime,
+      atime: originStats.atime,
+      mtime: originStats.mtime
+    };
+
+    Object.entries(originStats).forEach((value) => {
+      stats[value[0]] = value[1];
+    });
+
+    fileHandle.close();
+    return { type, resolution, buffer: fileBuffer, stats };
   } catch (error) {
-    console.error(error);
     return Promise.reject(error);
   }
 });
@@ -49,7 +63,6 @@ ipcMain.handle("fc:selectDir", async () => {
     }
     return "";
   } catch (error) {
-    console.error(error);
     return Promise.reject(error);
   }
 });
@@ -78,7 +91,8 @@ ipcMain.handle(
     const needMakeDir: string[] = [];
     const outputDirName = record.outputDirName;
     for (let index = 0; index < outputDirName.length; index++) {
-      const tempPath = dirPath + "\\" + outputDirName.slice(0, index + 1).join("\\");
+      const tempPath = join(dirPath, outputDirName.slice(0, index + 1).join("\\"));
+
       try {
         await access(tempPath);
       } catch (error) {
@@ -91,18 +105,8 @@ ipcMain.handle(
         await mkdir(needMakeDir[index]);
       }
     }
-    const source = `${dirPath}\\${record.name}`;
-    const target = `${dirPath}\\${record.outputDirName.join("\\")}\\${record.name}`;
+    const source = join(dirPath, record.name);
+    const target = join(dirPath, record.outputDirName.join("\\"), record.name);
     await copyFile(source, target);
   }
 );
-
-/** 生成JSON文件 */
-ipcMain.handle("fc:saveJSON", (_IpcMainInvokeEvent, savePath: string, data: string) => {
-  return appendFile(savePath, data, { encoding: "utf-8" });
-});
-
-/** 读取JSON */
-ipcMain.handle("fc:readJSON", (_IpcMainInvokeEvent, jsonPath: string) => {
-  return readFile(jsonPath, { encoding: "utf-8" });
-});

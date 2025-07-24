@@ -1,5 +1,8 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import type { FileTypeResult } from "file-type";
+import type { Stats } from "node:fs";
+
+const invoke = electronAPI.ipcRenderer.invoke;
 
 /**
  * 读取文件夹
@@ -7,7 +10,7 @@ import type { FileTypeResult } from "file-type";
  * @returns
  */
 function readdir(folderPath: string) {
-  return electronAPI.ipcRenderer.invoke("fc:readdir", folderPath);
+  return invoke("fc:readdir", folderPath);
 }
 /**
  * 读取文件类型
@@ -16,31 +19,24 @@ function readdir(folderPath: string) {
  * @throws 返回读取文件类型失败
  */
 function readFileType(filePath: string) {
-  return electronAPI.ipcRenderer.invoke("fc:readFileType", filePath) as Promise<FileTypeResult>;
+  return invoke("fc:readFileType", filePath) as Promise<FileTypeResult>;
 }
-/**
- * 保存JSON文件，编码"UTF-8"
- * @param {string} savePath 保存路径
- * @param {string} data JSON文件内容
- * @returns {void}
- */
-async function saveJSON(savePath: string, data: string) {
-  return await electronAPI.ipcRenderer.invoke("fc:saveJSON", savePath, data);
+
+interface ReadPictureResolveFace {
+  buffer: Uint8Array;
+  resolution: { height: number; width: number; type: string };
+  type: { ext: string; mime: string };
+  stats: Stats;
 }
-/**
- * 读取JSON文件，编码"UTF-8"
- * @param {string} jsonPath 读取路径
- * @returns {string}
- */
-async function readJSON(jsonPath: string) {
-  return (await electronAPI.ipcRenderer.invoke("fc:readJSON", jsonPath)) as string;
+
+function readPicture(path: string): Promise<ReadPictureResolveFace> {
+  return invoke("fc:readPicture", path);
 }
 
 export interface FSAPIFace {
-  readdir: (folderPath:string) => Promise<string[]>
+  readdir: (folderPath: string) => Promise<string[]>;
   readFileType: (filePath: string) => Promise<FileTypeResult>;
-  saveJSON: (savePath: string, data: string) => Promise<void>;
-  readJSON: (jsonPath: string) => Promise<string>;
+  readPicture: (path:string) => Promise<ReadPictureResolveFace>
 }
-const FSAPI:FSAPIFace = { readJSON, readdir, readFileType, saveJSON };
+const FSAPI: FSAPIFace = { readdir, readFileType ,readPicture};
 export default FSAPI;

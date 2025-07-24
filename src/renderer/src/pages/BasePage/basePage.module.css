@@ -3,8 +3,7 @@
 }
 .title-bar {
   height: 40px;
-  background: #181818;
-  color: white;
+  background: var(--page-background-color);
   display: flex;
   justify-content: start;
   align-items: center;
@@ -13,8 +12,13 @@
 
   app-region: drag;
   padding-left: 10px;
+
+  border-color: var(--border-color);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
 }
 
 .body {
+  position: relative;
   height: calc(100% - 40px);
 }

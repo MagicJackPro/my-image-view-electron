@@ -37,6 +37,10 @@
   align-items: center;
   width: 30px;
 }
+.select-selector-icon > svg {
+  width: 15px;
+  height: 15px;
+}
 
 .select-options {
   position: absolute;

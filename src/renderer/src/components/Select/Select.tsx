@@ -7,13 +7,13 @@ type PlacementType = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 
 export interface OptionFace {
   label: string;
-  value: string|number;
+  value: string | number;
 }
 
 interface SelectFace<T> {
   options: (T & OptionFace)[];
   defaultValue?: string | number;
-  onChange?: (option:T) => void;
+  onChange?: (option: T) => void;
   placement?: PlacementType;
   value?: string | number;
 }
@@ -21,7 +21,7 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
   const { defaultValue, value, options, placement = "bottomLeft", onChange } = params;
 
   const [visible, setVisible] = useState(false);
-  const [internalValue, setInternalValue] = useState<OptionFace| undefined>();
+  const [internalValue, setInternalValue] = useState<OptionFace | undefined>();
 
   useEffect(() => {
     const tmpVal = value ? value : defaultValue;
@@ -55,8 +55,8 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
     });
   }
 
-  function showOptions() {
-    setVisible(true);
+  function changeOptions() {
+    setVisible((v) => !v);
   }
 
   function closeOptions() {
@@ -83,7 +83,7 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
   }
   return (
     <div className={style["select"]}>
-      <div className={style["select-selector"]} onClick={showOptions}>
+      <div className={style["select-selector"]} onClick={changeOptions}>
         <span className={style["seleclt-selector-label"]}>
           <span>{internalValue?.label}</span>
         </span>

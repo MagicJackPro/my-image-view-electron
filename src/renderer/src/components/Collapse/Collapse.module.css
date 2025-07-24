@@ -1,0 +1,10 @@
+.collapse-content-base {
+
+}
+
+.collapse-content {
+  display: block;
+  transition: all 2s;
+  overflow: hidden;
+  height: 0;
+}

@@ -1,0 +1,29 @@
+.base {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  height: 0;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  pointer-events: none;
+  z-index: 2010;
+}
+
+.message {
+  display: inline-block;
+  padding: 9px 12px;
+  background: var(--page-content-background-color);
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  pointer-events: all;
+}
+.message svg{ 
+  height: 16px;
+  width: 16px;
+  /* background-color: #ffffff; */
+}

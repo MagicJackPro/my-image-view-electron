@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import style from "./FilterFiles.module.css";
 import Button from "@renderer/components/Button/Button";
 
+import type { Record } from "./ModalTable";
 interface FilterFilesFace {
   dirPath: string;
-  onDone: (files: string[]) => void;
+  onDone: (files: Record[]) => void;
   onlastPage: () => void;
 }
 
@@ -17,9 +18,10 @@ export default function FilterFiles(params: FilterFilesFace) {
     index: 0,
     percentage: 0,
     stepName: "",
-    success: 0
+    success: 0,
+    isDone: false
   });
-  const resultArrayRef = useRef<string[]>([]);
+  const resultArrayRef = useRef<Record[]>([]);
 
   useEffect(() => {
     runFilter(params.dirPath);
@@ -34,7 +36,8 @@ export default function FilterFiles(params: FilterFilesFace) {
         index: 1,
         percentage: 0,
         stepName: "读取文件夹",
-        success: 0
+        success: 0,
+        isDone: false
       });
       let originList: string[] = [];
       try {
@@ -42,6 +45,36 @@ export default function FilterFiles(params: FilterFilesFace) {
       } catch (error: any) {
         setError({ isError: true, message: error?.message });
         return;
+      }
+
+      const found = originList.find((fileName) => fileName === "autoSave.db");
+      if (found) {
+        try {
+        } catch (error) {}
+        const response = await window.api.dialog.SecondaryConfirmation({
+          message: "检测到自动保存进度文件，是否读取？",
+          type: "info",
+          buttons: ["读取", "取消"]
+        });
+
+        if (response.response === 0) {
+          const arr = await window.electron.ipcRenderer.invoke("db:selectAll", dirPath);
+
+          resultArrayRef.current = arr.map((record) => {
+            const outputDirName = record.outputDirName ? record.outputDirName.split("/") : [];
+            return { ...record, outputDirName };
+          });
+          setProgress({
+            count: 1,
+            fail: 0,
+            index: 1,
+            percentage: 100,
+            stepName: "结束",
+            success: 1,
+            isDone: true
+          });
+          return;
+        }
       }
       // setProgress({
       //   count: 1,
@@ -55,40 +88,49 @@ export default function FilterFiles(params: FilterFilesFace) {
         count: originList.length,
         fail: 0,
         index: 1,
-        percentage: 0,
+        percentage: 50,
         stepName: "检查文件类型",
-        success: 0
+        success: 0,
+        isDone: false
       });
       // 筛选支持读取的图片
       const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp"];
-      const resultArray: string[] = [];
+      // const resultArray: ReadJSONResponseFace[] = [];
 
       const length = originList.length;
       for (let index = 0; index < length; index++) {
+        const isDone = index + 1 === length;
+        const newPercentage = Math.floor((((index + 1) / length) * 100) / 2);
         try {
           const type = await myFS.readFileType(dirPath + "\\" + originList[index]);
           if (MIMEType.includes(type.mime)) {
-            resultArray.push(originList[index]);
+            resultArrayRef.current.push({
+              id: resultArrayRef.current.length,
+              name: originList[index],
+              outputDirName: [],
+              processingMethod: ""
+            });
             setProgress((origin) => {
               return {
                 count: length,
                 fail: origin.fail,
                 index: index + 1,
-                percentage: 0,
+                percentage: 50 + newPercentage,
                 stepName: origin.stepName,
-                success: origin.success + 1
+                success: origin.success + 1,
+                isDone
               };
             });
           } else {
-            console.log(`type.mime:`, type.mime);
             setProgress((origin) => {
               return {
                 count: length,
                 fail: origin.fail + 1,
                 index,
-                percentage: 0,
+                percentage: 50 + newPercentage,
                 stepName: origin.stepName,
-                success: origin.success
+                success: origin.success,
+                isDone
               };
             });
           }
@@ -98,16 +140,14 @@ export default function FilterFiles(params: FilterFilesFace) {
               count: length,
               fail: origin.fail + 1,
               index,
-              percentage: 0,
+              percentage: 50 + newPercentage,
               stepName: origin.stepName,
-              success: origin.success
+              success: origin.success,
+              isDone
             };
           });
         }
       }
-      // 保存临时进度
-
-      resultArrayRef.current = resultArray;
     } catch (error) {
       setError({ isError: true, message: "FilterFiles.tsx runFilter unkonw error" });
     }
@@ -145,8 +185,14 @@ export default function FilterFiles(params: FilterFilesFace) {
   return (
     <div className={style["base"]}>
       <div className={style["body"]}>
-        <div>
-          <span>进度条</span>
+        <div className={style["progress-bar"]}>
+          <div className={style["progress-inner"]}>
+            <div
+              className={style["progress-bg"]}
+              style={{ width: `${progress.percentage}%` }}
+            ></div>
+          </div>
+          <span className={style["progress-text"]}>{progress.percentage}%</span>
         </div>
         <div className={style["text-box"]}>
           <div>
@@ -162,10 +208,15 @@ export default function FilterFiles(params: FilterFilesFace) {
             <span>{progress.stepName}</span>
           </div>
         </div>
-        <div>
-          <Button type="dark" onClick={done}>
-            开始分类
+        <div className={style["button-box"]}>
+          <Button type="dark" onClick={params.onlastPage}>
+            回到上一步
           </Button>
+          {progress.isDone && (
+            <Button type="dark" onClick={done}>
+              开始分类
+            </Button>
+          )}
         </div>
       </div>
     </div>

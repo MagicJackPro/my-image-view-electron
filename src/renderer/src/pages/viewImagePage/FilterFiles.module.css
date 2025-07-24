@@ -7,7 +7,7 @@
   align-items: center;
 
   /* background-color: var(--page-background-color); */
-  
+
   background-color: #2c2c2c;
 }
 
@@ -16,6 +16,38 @@
   padding: 11px;
   border-radius: 10px;
 }
+.progress-bar {
+  margin-bottom: 20px;
+
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.progress-inner {
+  background-color: rgba(255, 255, 255, 0.06);
+  flex: 1 1 auto;
+  margin-right: 8px;
+
+  border-radius: 100px;
+}
+
+.progress-bg {
+  height: 100%;
+  background-color: #1677ff;
+  border-radius: inherit;
+}
+.progress-bg-success {
+  background-color: #52c41a;
+}
+
+.progress-bg-error {
+  background-color: #ff4d4f;
+}
+
+.progress-text {
+  flex: 0 0 40px;
+}
 
 .text-box {
   width: 500px;
@@ -23,6 +55,7 @@
   display: flex;
   justify-content: space-between;
 
+  margin-bottom: 20px;
 }
 
 .success {
@@ -31,4 +64,10 @@
 
 .fail {
   color: var(--fail-color);
+}
+
+.button-box {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }

@@ -1,5 +1,6 @@
 import { Outlet } from "react-router";
 import style from "./basePage.module.css";
+import Message from "@renderer/components/Message/Message";
 
 export default function BasePage() {
   return (
@@ -8,7 +9,9 @@ export default function BasePage() {
         <span>my-image-view-electron</span>
       </div>
       <div className={style["body"]}>
-        <Outlet />
+        <Message>
+          <Outlet />
+        </Message>
       </div>
     </div>
   );

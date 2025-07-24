@@ -5,6 +5,7 @@ import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 
 export interface Record {
+  id: number;
   /** 文件名 */
   name: string;
   /** 处理方式 */
@@ -61,17 +62,16 @@ export default function ModalTable(params: ModalTableFace) {
 
   useEffect(() => {
     const start = (pagination.pageNumber - 1) * pagination.pageSize;
-    const invoke = window.electron.ipcRenderer.invoke;
 
     const arr = listData.slice(start, start + 4).map((record) => {
-      invoke("fc:readPicture", `${dirPath}\\${record.name}`).then((result) => {
+      window.api.fs.readPicture(`${dirPath}\\${record.name}`).then((result) => {
         setCurrentList((origin) => {
           const targetName = record.name;
           const foundIndex = origin.findIndex((val) => val.name === targetName);
           if (foundIndex === -1) return origin;
           const newRecord = {
             ...record,
-            src: URL.createObjectURL(new Blob([result.buffer], { type: result.type }))
+            src: URL.createObjectURL(new Blob([result.buffer], { type: result.type.mime }))
           };
           return [...origin.slice(0, foundIndex), newRecord, ...origin.slice(foundIndex + 1)];
         });
@@ -93,11 +93,10 @@ export default function ModalTable(params: ModalTableFace) {
   function renderList() {
     // 创建异步读取图片渲染缩略图
     // const invoke = window.electron.ipcRenderer.invoke;
-
     return currentList.map((value, index) => {
       return (
         <tr key={index}>
-          <td>{index + 1}</td>
+          <td>{value.id + 1}</td>
           <td>
             {value.src ? (
               <img className={style["img"]} draggable={false} src={value.src} />
@@ -172,7 +171,9 @@ export default function ModalTable(params: ModalTableFace) {
       <div className={style["modal-body"]}>
         <div className={style["modal-title"]}>
           <h1>整理列表</h1>
-          <Button type="dark" onClick={onCancel}>关闭</Button>
+          <Button type="dark" onClick={onCancel}>
+            关闭
+          </Button>
         </div>
         {/* table head */}
         <table className={style["table"]}>

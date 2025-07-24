@@ -21,10 +21,24 @@
 
   padding: 20px;
   background-color: #181818;
+  border-color: var(--border-color);
+  border-left-width: 1px;
+  border-left-style: solid;
 }
 .control-panle > div,
 .control-panle > button {
   margin-bottom: 10px;
+}
+.collapse-content {
+  padding-top: 10px;
+}
+.collapse-content > * {
+  margin-bottom: 10px;
+}
+.flex-row-jc-between {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .page-number-box {

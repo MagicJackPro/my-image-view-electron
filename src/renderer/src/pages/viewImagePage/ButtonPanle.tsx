@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import style from "./ButtonPanle.module.css";
 import Button from "@renderer/components/Button/Button";
 
@@ -11,8 +12,10 @@ export interface ButtonRecordFace {
   key: string;
   /** 按钮名称 */
   label: string;
-  /** 快捷键 */
+  /** 快捷键编码 */
   shortcutKey: string;
+  /** 快捷键别名 */
+  shortcutKeyAlias: string;
 }
 const buttonList: ButtonRecordFace[] = [
   {
@@ -21,7 +24,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "待删除",
     aspectRatioClassification: false,
     calculateTheMagnification: false,
-    shortcutKey: "Num 0"
+    shortcutKey: "Numpad0",
+    shortcutKeyAlias: "Num 0"
   },
   {
     key: "auto",
@@ -29,7 +33,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "自动",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num 1"
+    shortcutKey: "Numpad1",
+    shortcutKeyAlias: "Num 1"
   },
   {
     key: "PC",
@@ -37,7 +42,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "PC",
     aspectRatioClassification: false,
     calculateTheMagnification: true,
-    shortcutKey: "Num 2"
+    shortcutKey: "Numpad2",
+    shortcutKeyAlias: "Num 2"
   },
   {
     key: "Moblie",
@@ -45,7 +51,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "Moblie",
     aspectRatioClassification: false,
     calculateTheMagnification: true,
-    shortcutKey: "Num 3"
+    shortcutKey: "Numpad3",
+    shortcutKeyAlias: "Num 3"
   },
   {
     key: "1x1",
@@ -53,7 +60,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "1x1",
     aspectRatioClassification: false,
     calculateTheMagnification: true,
-    shortcutKey: "Num 4"
+    shortcutKey: "Numpad4",
+    shortcutKeyAlias: "Num 4"
   },
   {
     key: "nfsw",
@@ -61,7 +69,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "色图",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num 5"
+    shortcutKey: "Numpad5",
+    shortcutKeyAlias: "Num 5"
   },
   {
     key: "H",
@@ -69,7 +78,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "H图",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num 6"
+    shortcutKey: "Numpad6",
+    shortcutKeyAlias: "Num 6"
   },
   {
     key: "collect",
@@ -77,7 +87,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "收集",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num 7"
+    shortcutKey: "Numpad7",
+    shortcutKeyAlias: "Num 7"
   },
   {
     key: "3",
@@ -85,7 +96,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "3",
     aspectRatioClassification: false,
     calculateTheMagnification: false,
-    shortcutKey: "Num 8"
+    shortcutKey: "Numpad8",
+    shortcutKeyAlias: "Num 8"
   },
   {
     key: "LingMeng",
@@ -93,7 +105,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "博丽灵梦",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num 9"
+    shortcutKey: "Numpad9",
+    shortcutKeyAlias: "Num 9"
   },
   {
     key: "avatar",
@@ -101,7 +114,8 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "头像",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num +"
+    shortcutKey: "NumpadAdd",
+    shortcutKeyAlias: "Num +"
   },
   {
     key: "other",
@@ -109,25 +123,41 @@ const buttonList: ButtonRecordFace[] = [
     folderName: "其他",
     aspectRatioClassification: true,
     calculateTheMagnification: true,
-    shortcutKey: "Num -"
+    shortcutKey: "NumpadSubtract",
+    shortcutKeyAlias: "Num -"
   }
 ];
 
 interface ButtonPanleFace {
-  onClick: (buttonInfo: ButtonRecordFace) =>void;
+  onClick: (buttonInfo: ButtonRecordFace) => void;
 }
 
 export default function ButtonPanle(params: ButtonPanleFace) {
-  const { onClick} = params;
+  const { onClick } = params;
+
+  useEffect(() => {
+    function keyup(event: KeyboardEvent) {
+      const code = event.code;
+
+      const found = buttonList.find((btn) => btn.shortcutKey === code);
+      if(found){
+        onClick(found)
+      }
+    }
+    document.body.addEventListener("keyup", keyup);
+    return () => {
+      document.body.removeEventListener("keyup", keyup);
+    };
+  });
   function renderButtons() {
     return buttonList.map((button) => {
-      function handleClick(){
+      function handleClick() {
         onClick(button);
       }
       return (
         <Button key={button.key} type="dark" onClick={handleClick}>
-            <span>{button.label}</span>
-            <span>{button.shortcutKey}</span>
+          <span>{button.label}</span>
+          <span>{button.shortcutKeyAlias}</span>
         </Button>
       );
     });

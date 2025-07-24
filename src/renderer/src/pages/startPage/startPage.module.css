@@ -4,10 +4,15 @@
   background-color: #1f1f1f;
 
   height: 100%;
+  padding: 20px;
 }
 
-.base span,.base h1 {
-  color: #ccc;
+.base h1 {
+  color: var(--color);
+}
+
+.base > * {
+  margin-bottom: 20px;
 }
 
 .drop-file-div {
@@ -16,7 +21,7 @@
 
   border-width: 1px;
   border-style: dashed;
-  border-color: #000000;
+  border-color: #ffffff;
   border-radius: 50px;
   display: flex;
   justify-content: center;
