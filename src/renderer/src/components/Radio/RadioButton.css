@@ -1,0 +1,98 @@
+:root {
+  --color-radio-group-01: rgb(22, 119, 255);
+  --color-radio-group-02: rgb(64, 150, 255);
+}
+
+.radio-button {
+  display: inline-block;
+  height: 32px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid rgb(217, 217, 217);
+
+  background-color: #fff;
+  color: rgba(0, 0, 0, 0.88);
+
+  cursor: pointer;
+  line-height: 32px;
+  padding-inline: 15px;
+  transition:
+    color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.radio-button::before {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  transition: 0.2s;
+  background: #fff;
+  opacity: 0;
+}
+.radio-button:active::before {
+  opacity: 0.2;
+}
+.radio-button:active::after {
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0.3;
+  transition: 0s;
+}
+.radio-button::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 50%;
+  top: 50%;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: translate(-50%, -50%) scale(10);
+  opacity: 0;
+  transition:
+    transform 0.8s,
+    opacity 0.8s;
+}
+
+.radio-button > span {
+  font-size: 14px;
+  line-height: 30px;
+  color: inherit;
+  user-select: none;
+}
+.radio-button:hover:not(.radio-button-disabled) > span {
+  color: var(--color-radio-group-01);
+}
+
+.radio-button-checked {
+  background-color: var(--color-radio-group-01);
+  border-color: var(--color-radio-group-01);
+}
+.radio-button-checked:hover:not(.radio-button-disabled) {
+  background-color: var(--color-radio-group-02);
+  border-color: var(--color-radio-group-02);
+}
+.radio-button-checked > span {
+  color: #fff;
+}
+.radio-button.radio-button-checked:hover:not(.radio-button-disabled) > span {
+  color: #fff;
+}
+
+.radio-button-disabled {
+  background-color: #d9d9d9;
+  border-color: #d9d9d9;
+
+  cursor: not-allowed;
+}
+.radio-button-disabled > span {
+  color: #aaa;
+}

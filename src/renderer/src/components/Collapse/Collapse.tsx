@@ -35,7 +35,7 @@ export default function Collapse(props: PropsFace) {
   const className: string[] = [style["collapse-content"], contentClassName];
   return (
     <div>
-      <Button type="dark" block icon={<Icon />} onClick={changeVisible} />
+      <Button block icon={<Icon />} onClick={changeVisible} />
       <div ref={contentRef} className={joinClassName(className)}>
         {children}
       </div>

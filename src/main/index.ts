@@ -1,9 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme, Notification, protocol } from "electron";
-import { join } from "path";
+import { app, shell, BrowserWindow, protocol } from "electron";
+import { join,dirname } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+// import { access, constants, mkdir } from "node:fs";
+import { accessSync, constants, mkdirSync } from "node:fs";
 import icon from "../../resources/icon.png?asset";
-import { readFile } from "node:fs/promises";
-import "./fc";
+import { updateMainWindow } from "./fc";
 import "./db";
 
 function createWindow(): void {
@@ -33,6 +34,7 @@ function createWindow(): void {
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
+    updateMainWindow(mainWindow);
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -62,51 +64,74 @@ protocol.registerSchemesAsPrivileged([
   }
 ]);
 
-ipcMain.handle("dark-mode:toggle", () => {
-  if (nativeTheme.shouldUseDarkColors) {
-    nativeTheme.themeSource = "light";
-  } else {
-    nativeTheme.themeSource = "dark";
-  }
-  return nativeTheme.shouldUseDarkColors;
-});
+// ipcMain.handle("dark-mode:toggle", () => {
+//   if (nativeTheme.shouldUseDarkColors) {
+//     nativeTheme.themeSource = "light";
+//   } else {
+//     nativeTheme.themeSource = "dark";
+//   }
+//   return nativeTheme.shouldUseDarkColors;
+// });
 
-ipcMain.handle("dark-mode:system", () => {
-  nativeTheme.themeSource = "system";
-});
+// ipcMain.handle("dark-mode:system", () => {
+//   nativeTheme.themeSource = "system";
+// });
 
-ipcMain.handle("notification:test", () => {
-  new Notification({ title: "test title", body: "test body" }).show();
-});
+// ipcMain.handle("notification:test", () => {
+//   new Notification({ title: "test title", body: "test body" }).show();
+// });
+
+// #region 防止多开
+const gotTheLock = app.requestSingleInstanceLock()
+if(!gotTheLock) {
+  app.quit();
+}
+// #endregion
+
+//#region 设置userData
+const appPath = app.getPath("exe");
+const userDataPath = join(dirname(appPath), "userData");
+
+try {
+  accessSync(userDataPath, constants.F_OK);
+  app.setPath("userData", userDataPath);
+} catch (error) {
+  try {
+    mkdirSync(userDataPath);
+    app.setPath("userData", userDataPath);
+  } catch (error) {}
+}
+//#endregion
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId("com.electron");
+  electronApp.setAppUserModelId("org.MyImageView");
 
-  function convertPath(originalPath) {
-    const match = originalPath.match(/^([a-zA-Z])\/(.*)$/);
+  // function convertPath(originalPath) {
+  //   const match = originalPath.match(/^([a-zA-Z])\/(.*)$/);
 
-    if (match) {
-      // 为 Windows 系统转换路径格式
-      return `${match[1]}:/${match[2]}`;
-    } else {
-      return originalPath; // 其他系统直接使用原始路径
-    }
-  }
+  //   if (match) {
+  //     // 为 Windows 系统转换路径格式
+  //     return `${match[1]}:/${match[2]}`;
+  //   } else {
+  //     return originalPath; // 其他系统直接使用原始路径
+  //   }
+  // }
 
   // 告诉 Electron 如何响应你的特殊方式的请求
-  protocol.handle("local-resource", async (request) => {
-    const decodedUrl = decodeURIComponent(
-      request.url.replace(new RegExp(`^local-resource://`, "i"), "")
-    );
+  // protocol.handle("local-resource", async (request) => {
+  //   const decodedUrl = decodeURIComponent(
+  //     request.url.replace(new RegExp(`^local-resource://`, "i"), "")
+  //   );
 
-    const fullPath = process.platform === "win32" ? convertPath(decodedUrl) : decodedUrl;
-    const data = await readFile(fullPath); // 异步读取文件内容
-    return new Response(data); // 将文件内容作为响应返回
-  });
+  //   const fullPath = process.platform === "win32" ? convertPath(decodedUrl) : decodedUrl;
+  //   const data = await readFile(fullPath); // 异步读取文件内容
+  //   return new Response(data); // 将文件内容作为响应返回
+  // });
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

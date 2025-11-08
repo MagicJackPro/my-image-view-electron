@@ -37,9 +37,10 @@
   align-items: center;
   width: 30px;
 }
-.select-selector-icon > svg {
+.select-selector-svg{
   width: 15px;
   height: 15px;
+  fill: var(--color);
 }
 
 .select-options {
@@ -47,7 +48,7 @@
   background-color: var(--input-background-color);
 
   width: 120px;
-  max-height: 138px;
+  max-height: 142px;
   box-sizing: border-box;
 
   overflow-y: scroll;
@@ -56,7 +57,7 @@
   border-style: solid;
   border-color: var(--input-border-color);
 
-  padding: 5px;
+  padding: 4px;
 }
 
 .select-options > .select-option:last-child {
@@ -68,7 +69,7 @@
   box-sizing: border-box;
   border-radius: 10px;
   padding: 0 11px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .select-option:hover {

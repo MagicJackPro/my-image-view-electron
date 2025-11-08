@@ -1,12 +1,9 @@
 .base {
   background-color: #181818;
-  flex: 0 0 300px;
-  width: 300px;
-  overflow: hidden;
-  
-  border-color: var(--border-color);
-  border-right-width: 1px;
-  border-right-style: solid;
+  flex: 1 1 auto;
+  width: 299px;
+  overflow: auto;
+  transition: width 1s;
 }
 
 .record {

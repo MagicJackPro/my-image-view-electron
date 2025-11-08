@@ -4,7 +4,6 @@ import Database from "better-sqlite3";
 
 ipcMain.handle("db:create", (_IpcMainInvokeEvent, folderPath: string) => {
   const db = new Database(join(folderPath, "autoSave.db"), {});
-  // id INTEGER PRIMARY KEY,
   const create = db.prepare(`
       CREATE TABLE IF NOT EXISTS filter_list
         (
@@ -53,30 +52,14 @@ ipcMain.handle(
     const insert = db.prepare(`
       INSERT INTO filter_list (id, name, processingMethod, outputDirName)
       VALUES (@id, @name, @processingMethod, @outputDirName);`);
-    const update = db.prepare(`
-      UPDATE filter_list
-      set name=@name, processingMethod=@processingMethod, outputDirName=@outputDirName
-      WHERE id=@id;`);
-
-    const findDuplicates = db.prepare(`
-      SELECT id FROM filter_list
-      WHERE id=@id
-      LIMIT 1;`);
 
     const task = db.transaction((array: Record[]) => {
+      db.prepare("DELETE FROM filter_list;").run();
       for (const record of array) {
-        const a = findDuplicates.get(record);
-        if (a) {
-          update.run({
-            ...record,
-            outputDirName: record.outputDirName.join("/")
-          });
-        } else {
-          insert.run({
-            ...record,
-            outputDirName: record.outputDirName.join("/")
-          });
-        }
+        insert.run({
+          ...record,
+          outputDirName: record.outputDirName.join("/")
+        });
       }
     });
 

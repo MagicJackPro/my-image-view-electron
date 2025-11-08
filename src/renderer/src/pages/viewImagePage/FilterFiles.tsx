@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import style from "./FilterFiles.module.css";
 import Button from "@renderer/components/Button/Button";
+import Modal from "@renderer/components/Modal/Modal";
 
 import type { Record } from "./ModalTable";
 interface FilterFilesFace {
@@ -11,6 +12,7 @@ interface FilterFilesFace {
 
 const myFS = window.api.fs;
 export default function FilterFiles(params: FilterFilesFace) {
+  const { onlastPage } = params;
   const [error, setError] = useState({ isError: false, message: "" });
   const [progress, setProgress] = useState({
     count: 0,
@@ -21,7 +23,9 @@ export default function FilterFiles(params: FilterFilesFace) {
     success: 0,
     isDone: false
   });
+  const [visible, setVisible] = useState(false);
   const resultArrayRef = useRef<Record[]>([]);
+  const readFileFailArrayRef = useRef<{ name: string; description: string }[]>([]);
 
   useEffect(() => {
     runFilter(params.dirPath);
@@ -76,14 +80,7 @@ export default function FilterFiles(params: FilterFilesFace) {
           return;
         }
       }
-      // setProgress({
-      //   count: 1,
-      //   fail: 0,
-      //   index: 1,
-      //   percentage: 100,
-      //   stepName: "读取文件夹",
-      //   success: 1
-      // });
+
       setProgress({
         count: originList.length,
         fail: 0,
@@ -95,7 +92,6 @@ export default function FilterFiles(params: FilterFilesFace) {
       });
       // 筛选支持读取的图片
       const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp"];
-      // const resultArray: ReadJSONResponseFace[] = [];
 
       const length = originList.length;
       for (let index = 0; index < length; index++) {
@@ -116,30 +112,38 @@ export default function FilterFiles(params: FilterFilesFace) {
                 fail: origin.fail,
                 index: index + 1,
                 percentage: 50 + newPercentage,
-                stepName: origin.stepName,
+                stepName: isDone ? "结束" : origin.stepName,
                 success: origin.success + 1,
                 isDone
               };
             });
           } else {
+            readFileFailArrayRef.current.push({
+              name: originList[index],
+              description: "不支持的图片类型"
+            });
             setProgress((origin) => {
               return {
                 count: length,
                 fail: origin.fail + 1,
-                index,
+                index: index + 1,
                 percentage: 50 + newPercentage,
-                stepName: origin.stepName,
+                stepName: isDone ? "结束" : origin.stepName,
                 success: origin.success,
                 isDone
               };
             });
           }
         } catch (error) {
+          readFileFailArrayRef.current.push({
+            name: originList[index],
+            description: "不支持文件夹或者损坏的文件"
+          });
           setProgress((origin) => {
             return {
               count: length,
               fail: origin.fail + 1,
-              index,
+              index: index + 1,
               percentage: 50 + newPercentage,
               stepName: origin.stepName,
               success: origin.success,
@@ -162,6 +166,31 @@ export default function FilterFiles(params: FilterFilesFace) {
     params.onDone(resultArrayRef.current);
   }
 
+  function showDetails() {
+    setVisible(true);
+  }
+
+  function renderModalContent() {
+    const body = readFileFailArrayRef.current.slice(0, 5).map((object, index) => {
+      return (
+        <div>
+          <span>{index + 1}:</span>
+          <span>{object.name}</span>
+          <span>{object.description}</span>
+        </div>
+      );
+    });
+
+    return (
+      <div>
+        <div>
+          <span>失败的前五个内容</span>
+        </div>
+        {body}
+      </div>
+    );
+  }
+
   //#region 错误界面显示
   if (error.isError) {
     return (
@@ -169,12 +198,10 @@ export default function FilterFiles(params: FilterFilesFace) {
         <div>
           <span>{error.message}</span>
           <div>
-            <Button type="dark" block onClick={params.onlastPage}>
+            <Button block onClick={params.onlastPage}>
               回到上一步
             </Button>
-            <Button type="dark" onClick={retry}>
-              重试
-            </Button>
+            <Button onClick={retry}>重试</Button>
           </div>
         </div>
       </div>
@@ -209,16 +236,19 @@ export default function FilterFiles(params: FilterFilesFace) {
           </div>
         </div>
         <div className={style["button-box"]}>
-          <Button type="dark" onClick={params.onlastPage}>
-            回到上一步
-          </Button>
-          {progress.isDone && (
-            <Button type="dark" onClick={done}>
-              开始分类
-            </Button>
-          )}
+          <Button onClick={onlastPage}>回到上一步</Button>
+          <Button onClick={showDetails}>显示详情</Button>
+          {progress.isDone && <Button onClick={done}>开始分类</Button>}
         </div>
       </div>
+      <Modal
+        visible={visible}
+        onCancel={() => {
+          setVisible(false);
+        }}
+      >
+        {renderModalContent()}
+      </Modal>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useEffect, createRef, useState, useMemo, useRef } from "react";
-import type { MouseEvent } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import type { MouseEvent, TouchEvent } from "react";
 import style from "./ViewImage.module.css";
 import Button from "../Button/Button";
 import {
@@ -10,6 +10,8 @@ import {
   PictureIsCenter
 } from "@renderer/assets/icon/icon";
 import Select from "@renderer/components/Select/Select";
+import Tooltip from "@renderer/components/Tooltip/Tooltip";
+import { debounce } from "lodash";
 
 interface OptionFace {
   label: string;
@@ -19,17 +21,33 @@ interface OptionFace {
 interface ViewImageFace {
   src: string;
   resolution: { height: number; width: number };
+  onChangeFullWindow: (fullWindowFlag: boolean) => void;
 }
 
-function translateImageStyle(scale: number, translate: { x: number; y: number }, grab: boolean) {
+function translateImageStyle(
+  scale: number,
+  translate: { x: number; y: number },
+  grab: boolean,
+  resolution: { width: number; height: number }
+) {
+  const finalResolution = { width: "0", height: "0" };
+  if (scale === 100) {
+    finalResolution.width = resolution.width.toString();
+    finalResolution.height = resolution.height.toString();
+  } else {
+    finalResolution.width = ((resolution.width * scale) / 100).toFixed(2);
+    finalResolution.height = ((resolution.height * scale) / 100).toFixed(2);
+  }
+
   return (
     (grab ? "cursor: grab;" : "") +
-    `transform: scale(${scale / 100}) translate(${translate.x}px, ${translate.y}px);`
+    `transform: translate(${translate.x}px, ${translate.y}px);` +
+    `width: ${finalResolution.width}px;height: ${finalResolution.height}px;`
   );
 }
 
 export default function ViewImage(params: ViewImageFace) {
-  const { src, resolution } = params;
+  const { src, resolution, onChangeFullWindow } = params;
 
   const [imageScle, setImageScle] = useState({
     width: 0,
@@ -37,54 +55,66 @@ export default function ViewImage(params: ViewImageFace) {
     Percentage: 100,
     AdaptivePercentage: 100
   });
+  const [fullWindowFlag, setFullWindow] = useState(false);
 
-  const boxRef = createRef<HTMLDivElement>();
-  const imgRef = createRef<HTMLImageElement>();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const mouseDown = useRef(false);
   const canMove = useRef(false);
   const lastMouseMovePoint = useRef({ x: 0, y: 0 });
   const translateRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (src && boxRef.current) {
+    function documentResize(init: boolean) {
+      if (!src || !boxRef.current) return;
+
       const clientWidth = boxRef.current.clientWidth;
       const clientHeight = boxRef.current.clientHeight;
       const widthDifference = resolution.width > clientWidth ? resolution.width - clientWidth : 0;
       const heightDifference =
         resolution.height > clientHeight ? resolution.height - clientHeight : 0;
 
-      if (widthDifference === 0 && heightDifference === 0) {
-        setImageScle({
-          width: resolution.width,
-          height: resolution.height,
-          Percentage: 100,
-          AdaptivePercentage: 100
-        });
-      } else {
+      let newPercentage = 100;
+      if (widthDifference !== 0 || heightDifference !== 0) {
         // 计算比值
-        const Percentage = Math.floor(
+        newPercentage = Math.floor(
           heightDifference > widthDifference
             ? (clientHeight / resolution.height) * 100
             : (clientWidth / resolution.width) * 100
         );
-        if (heightDifference > widthDifference) {
+      }
+      setImageScle((state) => {
+        let Temporary = state.Percentage;
+        if (init || state.Percentage === state.AdaptivePercentage) {
+          Temporary = newPercentage;
+          if (imgRef.current) {
+            translateRef.current = { x: 0, y: 0 };
+            canMove.current = false;
+            imgRef.current.style = translateImageStyle(
+              newPercentage,
+              translateRef.current,
+              false,
+              resolution
+            );
+          }
         }
-        setImageScle({
-          // width: (resolution.width * Percentage) / 100,
-          // height: (resolution.height * Percentage) / 100,
+        return {
           width: resolution.width,
           height: resolution.height,
-          Percentage: Percentage,
-          AdaptivePercentage: Percentage
-        });
-
-        if (imgRef.current) {
-          translateRef.current = { x: 0, y: 0 };
-          canMove.current = false;
-          imgRef.current.style = translateImageStyle(Percentage, translateRef.current, false);
-        }
-      }
+          Percentage: Temporary,
+          AdaptivePercentage: newPercentage
+        };
+      });
     }
+
+    documentResize(true);
+    const listener = debounce(() => documentResize(false), 500);
+
+    window.addEventListener("resize", listener);
+
+    return () => {
+      window.removeEventListener("resize", listener);
+    };
   }, [src]);
 
   function resetSize(value: OptionFace) {
@@ -97,14 +127,23 @@ export default function ViewImage(params: ViewImageFace) {
     });
 
     if (imgRef.current) {
-      translateRef.current = { x: 0, y: 0 };
       canMove.current = newPercentage > imageScle.AdaptivePercentage;
+      if (!canMove.current) {
+        translateRef.current = { x: 0, y: 0 };
+      }
       imgRef.current.style = translateImageStyle(
         newPercentage,
         translateRef.current,
-        canMove.current
+        canMove.current,
+        resolution
       );
     }
+  }
+
+  function handlerTouchStart(event: TouchEvent<HTMLImageElement>) {
+    const changedTouchesFrist = event.changedTouches[0];
+    mouseDown.current = true;
+    lastMouseMovePoint.current = { x: changedTouchesFrist.clientX, y: changedTouchesFrist.clientY };
   }
 
   function handleMouseDown(event: MouseEvent) {
@@ -113,12 +152,39 @@ export default function ViewImage(params: ViewImageFace) {
     lastMouseMovePoint.current = { x: event.clientX, y: event.clientY };
   }
 
+  function handlerTouchEnd() {
+    mouseDown.current = false;
+  }
+
   function handleMouseUp() {
     mouseDown.current = false;
   }
 
   function handleMouseOut() {
     mouseDown.current = false;
+  }
+
+  function handlerTouchMove(event: TouchEvent<HTMLImageElement>) {
+    const changedTouchesFrist = event.changedTouches[0];
+    if (mouseDown.current && canMove.current && imgRef.current) {
+      const xDifference = changedTouchesFrist.clientX - lastMouseMovePoint.current.x;
+      const yDifference = changedTouchesFrist.clientY - lastMouseMovePoint.current.y;
+      lastMouseMovePoint.current = {
+        x: changedTouchesFrist.clientX,
+        y: changedTouchesFrist.clientY
+      };
+      translateRef.current = {
+        x: translateRef.current.x + xDifference,
+        y: translateRef.current.y + yDifference
+      };
+      canMove.current = imageScle.Percentage > imageScle.AdaptivePercentage;
+      imgRef.current.style = translateImageStyle(
+        imageScle.Percentage,
+        translateRef.current,
+        canMove.current,
+        resolution
+      );
+    }
   }
 
   function handleMouseMove(event: MouseEvent) {
@@ -134,7 +200,8 @@ export default function ViewImage(params: ViewImageFace) {
       imgRef.current.style = translateImageStyle(
         imageScle.Percentage,
         translateRef.current,
-        canMove.current
+        canMove.current,
+        resolution
       );
     }
   }
@@ -152,7 +219,8 @@ export default function ViewImage(params: ViewImageFace) {
       imgRef.current.style = translateImageStyle(
         imageScle.AdaptivePercentage,
         { x: 0, y: 0 },
-        canMove.current
+        canMove.current,
+        resolution
       );
     }
   }
@@ -163,7 +231,8 @@ export default function ViewImage(params: ViewImageFace) {
       imgRef.current.style = translateImageStyle(
         imageScle.Percentage,
         { x: 0, y: 0 },
-        canMove.current
+        canMove.current,
+        resolution
       );
     }
   }
@@ -183,10 +252,23 @@ export default function ViewImage(params: ViewImageFace) {
     ];
     const tempValue = imageScle.AdaptivePercentage;
 
-    if (defaultOptions.findIndex((option) => option.value === tempValue) === -1) {
-      return [
-        { label: `${imageScle.AdaptivePercentage}%`, value: imageScle.AdaptivePercentage }
-      ].concat(defaultOptions);
+    let isNeedInserted = true;
+    let index = 0;
+    for (; index < defaultOptions.length; index++) {
+      if (defaultOptions[index].value === tempValue) {
+        isNeedInserted = false;
+        break;
+      }
+      if (defaultOptions[index].value > tempValue) {
+        break;
+      }
+    }
+
+    if (isNeedInserted) {
+      defaultOptions.splice(index, 0, {
+        label: `${imageScle.AdaptivePercentage}%`,
+        value: imageScle.AdaptivePercentage
+      });
     }
     return defaultOptions;
   }, [imageScle.AdaptivePercentage]);
@@ -194,11 +276,8 @@ export default function ViewImage(params: ViewImageFace) {
   /** 缩小 */
   function reductionPicture() {
     const foundIndex = Options.findIndex((option) => option.value === imageScle.Percentage);
-    if (foundIndex > 1) {
-      const tempVal = Options[foundIndex - 1].value;
-      if (tempVal < imageScle.Percentage) {
-        resetSize(Options[foundIndex - 1]);
-      }
+    if (foundIndex > 0) {
+      resetSize(Options[foundIndex - 1]);
     }
   }
 
@@ -217,51 +296,57 @@ export default function ViewImage(params: ViewImageFace) {
 
   /** 全屏 */
   function handleFullWindow() {
-    window.api.dialog.SecondaryConfirmation({message:"开发中"})
+    // window.api.dialog.SecondaryConfirmation({ message: "开发中" });
+    const newFullWindowFlag = !fullWindowFlag;
+    setFullWindow(newFullWindowFlag);
+    onChangeFullWindow(newFullWindowFlag);
   }
 
-  // TODO 触摸事件
-  if (src) {
-    return (
-      <div ref={boxRef} className={style["image-box"]}>
+  return (
+    <div ref={boxRef} className={style["image-box"]}>
+      {src ? (
         <img
           ref={imgRef}
           className={style["img"]}
           draggable={false}
-          height={imageScle.height}
+          onTouchEnd={handlerTouchEnd}
+          onTouchStart={handlerTouchStart}
+          onTouchMove={handlerTouchMove}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseOut={handleMouseOut}
           onMouseUp={handleMouseUp}
           src={src}
-          width={imageScle.width}
+          // onLoad={()=>{console.log("<img> onload");}}
         />
-        <div className={style["floating-window"]}>
-          <Button type="dark" icon={<Enlargement />} shape="circle" onClick={enlargementPicture} />
-          <Select<OptionFace>
-            value={imageScle.Percentage}
-            placement="topRight"
-            options={Options}
-            onChange={resetSize}
-          />
-          <Button type="dark" icon={<Reduction />} shape="circle" onClick={reductionPicture} />
-
-          <Button type="dark" icon={<Reset />} shape="circle" onClick={resetTranslate} />
-          <Button
-            type="dark"
-            icon={<PictureIsCenter />}
-            shape="circle"
-            onClick={thePictureIsCenter}
-          />
-
-          <Button type="dark" icon={<FullWindow />} shape="circle" onClick={handleFullWindow} />
-        </div>
+      ) : (
+        <p>
+          <span>loading</span>
+        </p>
+      )}
+      <div className={style["floating-window"]}>
+        <Tooltip title="放大">
+          <Button icon={<Enlargement />} shape="circle" onClick={enlargementPicture} />
+        </Tooltip>
+        <Select<OptionFace>
+          value={imageScle.Percentage}
+          placement="topRight"
+          options={Options}
+          onChange={resetSize}
+        />
+        <Tooltip title="缩小">
+          <Button icon={<Reduction />} shape="circle" onClick={reductionPicture} />
+        </Tooltip>
+        <Tooltip title="重置">
+          <Button icon={<Reset />} shape="circle" onClick={resetTranslate} />
+        </Tooltip>
+        <Tooltip title="居中">
+          <Button icon={<PictureIsCenter />} shape="circle" onClick={thePictureIsCenter} />
+        </Tooltip>
+        <Tooltip title="展开">
+          <Button icon={<FullWindow />} shape="circle" onClick={handleFullWindow} />
+        </Tooltip>
       </div>
-    );
-  }
-  return (
-    <div ref={boxRef} className={style["image-box"]}>
-      <p>loading</p>
     </div>
   );
 }

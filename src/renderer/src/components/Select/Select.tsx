@@ -1,7 +1,8 @@
 import style from "./Select.module.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, createRef } from "react";
 
 import { Arrow } from "@renderer/assets/icon/icon";
+import type { MouseEvent} from "react"
 
 type PlacementType = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 
@@ -23,6 +24,8 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
   const [visible, setVisible] = useState(false);
   const [internalValue, setInternalValue] = useState<OptionFace | undefined>();
 
+  const boxRef = createRef<HTMLDivElement>();
+
   useEffect(() => {
     const tmpVal = value ? value : defaultValue;
     const found = options.find((option) => option.value === tmpVal);
@@ -32,6 +35,19 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
       setInternalValue(undefined);
     }
   }, [value, defaultValue]);
+
+  useEffect(() => {
+    if (visible && boxRef.current) {
+      const index = options.findIndex((option) => option.value === internalValue?.value);
+      if (index === -1) return;
+      const clientHeight = boxRef.current.clientHeight;
+      const scrollTop = index * 34;
+      const PADDING_TOP = 4;
+      if (scrollTop + PADDING_TOP >= clientHeight) {
+        boxRef.current.scrollTop = scrollTop;
+      }
+    }
+  }, [visible]);
 
   function renderOptions() {
     const baseClassName = style["select-option"];
@@ -55,7 +71,8 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
     });
   }
 
-  function changeOptions() {
+  function changeOptions(event:MouseEvent<HTMLDivElement>) {
+    event.target
     setVisible((v) => !v);
   }
 
@@ -81,18 +98,24 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
       optionsPlacement = style["bottom-right"];
       break;
   }
+
+  function handlerBlur() {
+    closeOptions();
+    return ;
+  }
+
   return (
-    <div className={style["select"]}>
+    <div className={style["select"]} tabIndex={-1} onBlur={handlerBlur}>
       <div className={style["select-selector"]} onClick={changeOptions}>
         <span className={style["seleclt-selector-label"]}>
           <span>{internalValue?.label}</span>
         </span>
-        <span className={style["select-selector-icon"]}>
-          <Arrow />
-        </span>
+        <div className={style["select-selector-icon"]}>
+          <Arrow className={style["select-selector-svg"]} />
+        </div>
       </div>
       {visible && (
-        <div className={[style["select-options"], optionsPlacement].join(" ")}>
+        <div ref={boxRef} className={[style["select-options"], optionsPlacement].join(" ")}>
           {renderOptions()}
         </div>
       )}

@@ -1,0 +1,91 @@
+.theme-drak {
+  --color-01: #4096ff;
+  --color-02: #4cd964;
+  --color-03: #313232;
+  --color-04: #454545;
+  --color-05: #cccccc;
+  --color-06: #ffffff;
+  --color-07: #1f1f1f;
+
+  --page-background-color: #181818;
+  --page-content-background-color: var(--color-07);
+  --color: #c2c2c2;
+
+  --success-color: #0dbc79;
+  --fail-color: #ce6c5f;
+
+  --border-color: #474747;
+
+  --box-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05);
+
+  --input-active-color: #ffffff;
+  --input-active-background-color: #4096ff;
+  --input-hover-color: #4096ff;
+  --input-border-color: #bbbbbb;
+  --input-background-color: #434343;
+  --input-background-button: #363636;
+}
+
+span {
+  color: var(--color);
+}
+
+/* #region 滚动条 -webkit-scrollbar */
+div::-webkit-scrollbar {
+  width: 14px;
+  height: 8px;
+  background-color: #1f1f1f;
+  border-left-color: #101214;
+  border-left-width: 1px;
+  border-left-style: solid;
+}
+div::-webkit-scrollbar-thumb {
+  background-color: #434343;
+}
+div::-webkit-scrollbar-thumb:hover {
+  background-color: #4f4f4f;
+}
+
+div {
+  overflow: visible;
+}
+/*#endregion */
+
+/* #region radio组件 */
+.theme-drak .radio-button:not(.radio-button-checked) {
+  background-color: var(--color-03);
+  border-color: var(--color-4);
+  color: var(--color-05);
+}
+.theme-drak .radio-button:not(.radio-button-checked):hover > span {
+  color: var(--color-06);
+}
+/* #endregion */
+
+/* #region button 按钮 */
+.theme-drak .button-base {
+  --button-default-gb-color: #1f1f1f;
+  --button-default-border-color: #454545;
+  --button-default-color: #c2c2c2;
+
+  --button-default-hover-color: #ffffff;
+  --button-default-hover-border-color: #0078d4;
+  --button-default-hover-bg: #0078d4;
+}
+.theme-drak .button-default {
+  background-color: var(--button-default-gb-color);
+  color: var(--button-default-color);
+  border-color: var(--button-default-border-color);
+}
+.theme-drak .button-default:not(:disabled):hover {
+  background-color: var(--button-default-hover-bg);
+  color: var(--button-default-hover-color);
+  border-color: var(--button-default-hover-border-color);
+}
+
+.theme-drak .button-base.button-danger:not(.button-primary) {
+  background-color: var(--button-default-gb-color);
+}
+/* #endregion */

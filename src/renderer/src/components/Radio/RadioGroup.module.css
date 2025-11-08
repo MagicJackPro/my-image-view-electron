@@ -1,0 +1,17 @@
+.radio-group.radio-group-button > *:first-child {
+  border-end-start-radius: 6px;
+  border-start-start-radius: 6px;
+}
+
+.radio-group.radio-group-button > *:last-child {
+  border-end-end-radius: 6px;
+  border-start-end-radius: 6px;
+}
+
+.radio-group-block {
+  display: flex;
+}
+.radio-group-block > * {
+  flex: 1;
+  text-align: center;
+}

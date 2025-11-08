@@ -171,9 +171,7 @@ export default function ModalTable(params: ModalTableFace) {
       <div className={style["modal-body"]}>
         <div className={style["modal-title"]}>
           <h1>整理列表</h1>
-          <Button type="dark" onClick={onCancel}>
-            关闭
-          </Button>
+          <Button onClick={onCancel}>关闭</Button>
         </div>
         {/* table head */}
         <table className={style["table"]}>
@@ -197,12 +195,8 @@ export default function ModalTable(params: ModalTableFace) {
         </table>
         <div className={style["pagination"]}>
           <span>{`${pagination.pageNumber}/${pagination.pageNumberCount}`}</span>
-          <Button type="dark" onClick={lastTablePage}>
-            上一页
-          </Button>
-          <Button type="dark" onClick={nextTablePage}>
-            下一页
-          </Button>
+          <Button onClick={lastTablePage}>上一页</Button>
+          <Button onClick={nextTablePage}>下一页</Button>
           <input
             autoComplete="off"
             className={style["input-number"]}
@@ -211,9 +205,7 @@ export default function ModalTable(params: ModalTableFace) {
             min={1}
             type="number"
           />
-          <Button type="dark" onClick={toPageNumber}>
-            跳转
-          </Button>
+          <Button onClick={toPageNumber}>跳转</Button>
         </div>
       </div>
     </Modal>

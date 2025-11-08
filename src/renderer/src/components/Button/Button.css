@@ -1,0 +1,199 @@
+:root {
+  --button-default-hover-color: #4096ff;
+  --button-default-hover-border-color: #4096ff;
+  --button-default-hover-bg: #ffffff;
+}
+
+.button-base {
+  --button-color-text-disabled: rgba(0, 0, 0, 0.25);
+  --button-border-color-disabled: #d9d9d9;
+  --button-color-bg-container-disabled: #b7c0c0;
+
+  --button-error-hover: #ff7875;
+  --button-error-active: #d9363e;
+  --button-error-border-hover: #ffa39e;
+  --button-error-border-active: #d9363e;
+
+  --button-danger-color: #ff4d4f;
+  --button-danger-bg-container: #ffffff;
+  --button-danger-primary-color: #ffffff;
+  --button-danger-primary-bg-container: #ff4d4f;
+}
+
+.button-base {
+  outline: none;
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+  /* transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1); */
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  user-select: none;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+
+.button-block {
+  width: 100%;
+}
+
+/* .button-base::before {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  transition: 0.2s;
+  background: #fff;
+  opacity: 0;
+}
+.button-base:active::before {
+  opacity: 0.2;
+}
+.button-base:active::after {
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0.3;
+  transition: 0s;
+}
+.button-base::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 50%;
+  top: 50%;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: translate(-50%, -50%) scale(10);
+  opacity: 0;
+  transition:
+    transform 0.8s,
+    opacity 0.8s;
+} */
+
+/*#region 默认配色 default*/
+.button-default {
+  background-color: #ffffff;
+
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.88);
+
+  height: 40px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgb(217, 217, 217);
+  padding-left: 15px;
+  padding-right: 15px;
+
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+.button-default:not(:disabled):hover {
+  color: var(--button-default-hover-color);
+  border-color: var(--button-default-hover-border-color);
+  background-color: var(--button-default-hover-bg);
+}
+.button-default:active {
+  box-shadow: 0px 0px 0px 8px rgba(60, 126, 255, 0.3);
+}
+/* #endregion */
+
+.button-primary {
+  background-color: #4096ff;
+
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.88);
+
+  height: 40px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #4096ff;
+  padding-left: 15px;
+  padding-right: 15px;
+
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.02);
+}
+
+.button-primary:active:not(:disabled) {
+  box-shadow: 0px 0px 0px 8px rgba(60, 77, 79, 0.3);
+}
+
+/* #region 警告配色 */
+/* TODO Button组件警告配色 */
+/* #endregion */
+
+/* #region 危险配色 danger */
+.button-base.button-danger:not(.button-primary) {
+  color: var(--button-danger-color);
+  background-color: var(--button-danger-bg-container);
+  border-color: var(--button-danger-color);
+}
+.button-base.button-danger:not(.button-primary):hover {
+  color: var(--button-error-hover);
+  border-color: var(--button-error-border-hover);
+}
+.button-base.button-danger:not(.button-primary):active {
+  color: var(--button-error-active);
+  border-color: var(--button-error-border-active);
+  box-shadow: 0px 0px 0px 8px rgba(255, 77, 79, 0.3);
+}
+
+.button-base.button-danger.button-primary {
+  color: var(--button-danger-primary-color);
+  background-color: var(--button-danger-primary-bg-container);
+  border-color: var(--button-danger-primary-bg-container);
+}
+.button-base.button-danger.button-primary:hover:not(:disabled) {
+  background-color: var(--button-error-hover);
+  border-color: var(--button-error-hover);
+}
+.button-base.button-danger.button-primary:active:not(:disabled) {
+  background-color: var(--button-error-active);
+  border-color: var(--button-error-active);
+  box-shadow: 0px 0px 0px 8px rgba(255, 77, 79, 0.3);
+}
+.button-base.button-danger.button-primary:active::before {
+  content: none;
+}
+.button-base.button-danger.button-primary:active::after {
+  content: none;
+}
+/* #endregion */
+
+/* #region 禁用按钮 disabled */
+.button-base:disabled,
+.button-base.button-danger:disabled:not(.button-primary),
+.button-base.button-primary:disabled {
+  cursor: not-allowed;
+  color: var(--button-color-text-disabled);
+  border-color: var(--button-border-color-disabled);
+  background-color: var(--button-color-bg-container-disabled);
+  box-shadow: none;
+}
+/* #endregion */
+
+/* #region shape */
+.button-circle {
+  min-width: 40px;
+  padding-inline-start: 0;
+  padding-inline-end: 0;
+  border-radius: 50%;
+}
+/* #endregion */
+
+/* #region iocn */
+.button-base svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* #endregion */

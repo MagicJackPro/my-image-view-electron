@@ -4,7 +4,6 @@
   width: 100%;
   height: 100%;
 
-  /* background-color: #2c2c2c; */
   background-color: var(--page-background-color);
 }
 .base p,
@@ -17,18 +16,25 @@
 }
 
 .control-panle {
-  flex: 0 0 240px;
-
+  width: 261px;
+  max-height: 100%;
   padding: 20px;
   background-color: #181818;
   border-color: var(--border-color);
   border-left-width: 1px;
   border-left-style: solid;
+  transition: width 0.5s;
+
+  flex: 0 0 261px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
 }
-.control-panle > div,
-.control-panle > button {
-  margin-bottom: 10px;
+.control-panle > div:first-child {
+  margin-bottom: 20px;
+  flex: 0 0 auto;
 }
+
 .collapse-content {
   padding-top: 10px;
 }
@@ -56,5 +62,26 @@
   color: var(--color);
   outline-color: var(--input-hover-color);
 }
-.input-number:hover {
+
+.aside {
+  height: 100%;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: width 0.5s;
+
+  border-color: var(--border-color);
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+
+.xxx-01 {
+  height: 160px;
+  padding: 10px;
+
+  background-color: #1f1f1f;
+}
+.xxx-01 > * {
+  margin-bottom: 10px;
 }

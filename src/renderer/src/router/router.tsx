@@ -3,6 +3,7 @@ import { createHashRouter } from 'react-router';
 import StartPage from '@renderer/pages/startPage/startPage';
 import ViewImagePage from '@renderer/pages/viewImagePage/viewImagePage';
 import BasePage from '@renderer/pages/BasePage/BasePage';
+import SettingPage from '@renderer/pages/SettingPage/SettingPage';
 
 const Router = createHashRouter([
   {
@@ -13,6 +14,10 @@ const Router = createHashRouter([
       {
         path: 'viewIamge',
         Component: ViewImagePage
+      },
+      {
+        path: 'setting',
+        Component: SettingPage
       }
     ]
   }

@@ -1,0 +1,14 @@
+.AutoSaveComponemt {
+  height: 149px;
+  border-top-style: solid;
+  border-top-color: var(--border-color);
+  border-top-width: 1px;
+  padding: 20px 0;
+}
+.AutoSaveComponemt >div{
+  margin-bottom: 8px;
+  text-align: center;
+}
+.AutoSaveComponemt >div:last-child{
+  margin-bottom: 0;
+}

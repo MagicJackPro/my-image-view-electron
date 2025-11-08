@@ -1,9 +1,33 @@
+.base {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
+  overflow: hidden;
+}
+
 .button-div {
   display: grid;
   grid: auto-flow 50px / repeat(2, 100px);
   grid-row-gap: 20px;
   grid-column-gap: 20px;
+
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
+
+  overflow: hidden;
+  margin-bottom: 10px;
+  /* overflow-y: auto;
+  overflow-x: hidden; */
 }
+/* .button-div::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background-color: #aaa;
+} */
 
 .button-div > button {
   height: auto;

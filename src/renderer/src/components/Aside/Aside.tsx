@@ -4,6 +4,7 @@ import CalendarSvg from "@renderer/assets/calendar.svg";
 import PictureSvg from "@renderer/assets/picture.svg";
 import ResolutionSvg from "@renderer/assets/resolution.svg";
 import PathSvg from "@renderer/assets/path.svg";
+import TypeSvg from "@renderer/assets/type.svg";
 
 export interface AsideFace {
   /** 文件名 */
@@ -16,19 +17,23 @@ export interface AsideFace {
   resolution: { width: number; height: number };
   /** 文件路径 */
   filePath: string;
+  /** 分类类型 */
+  outputType:string;
 }
 
 const labelObject = {
   /** 文件名 */
   fileName: { label: "文件名", icon: PictureSvg },
-  /** 创建时间 */
-  ceateTime: { label: "创建时间", icon: CalendarSvg },
   /** 文件大小 */
   fileSize: { label: "文件大小", icon: FileSvg },
   /** 分辨率 */
   resolution: { label: "分辨率", icon: ResolutionSvg },
+  /** 创建时间 */
+  ceateTime: { label: "创建时间", icon: CalendarSvg },
   /** 文件路径 */
-  filePath: { label: "文件路径", icon: PathSvg }
+  filePath: { label: "文件路径", icon: PathSvg },
+  /** 分类类型 */
+  outputType: { label: "分类类型", icon: TypeSvg }
 };
 
 function Record(params: { label: string; value: string; icon: string }) {

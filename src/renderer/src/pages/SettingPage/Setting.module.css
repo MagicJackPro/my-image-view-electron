@@ -1,0 +1,81 @@
+.base {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--page-background-color);
+  /* background-color: #1f1f1f; */
+
+  height: 100%;
+  padding: 20px;
+}
+
+.base h1,
+.base h2 {
+  color: #ffffff;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  flex: 0 0 85px;
+}
+
+.body {
+  display: flex;
+  flex-direction: row;
+  height: calc(100% - 85px);
+  flex: 1 1 auto;
+}
+
+.list {
+  width: 120px;
+  padding: 8px 7px 8px 8px;
+  border-right: 1px solid #aaaaaa;
+  background-color: var(--page-content-background-color);
+  flex: 0 0 120px;
+}
+.main {
+  padding: 8px;
+  flex: 1 1 auto;
+  background-color: var(--page-content-background-color);
+
+  overflow-y: scroll;
+}
+
+.record {
+  padding: 12px;
+}
+.record:hover {
+  background-color: #232424;
+}
+
+.record > .record-title {
+  font-size: 24px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.record-label {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.record-label > span:last-child {
+  color: #eeeeee;
+}
+
+.record-description {
+  /* color: ; */
+  margin-bottom: 4px;
+}
+.record input[type="text"] {
+  box-sizing: border-box;
+  padding: 7px;
+  outline: none;
+  color: #cccccc;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #3c3c3c;
+  background-color: #313131;
+  box-shadow: none;
+}

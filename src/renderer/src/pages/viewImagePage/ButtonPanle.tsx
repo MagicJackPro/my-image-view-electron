@@ -1,171 +1,102 @@
-import { useEffect } from "react";
+import { useEffect, useRef, createRef, useState } from "react";
 import style from "./ButtonPanle.module.css";
 import Button from "@renderer/components/Button/Button";
+import { useStore } from "@renderer/hook/useStores";
+import Pagination, { type PaginationFace } from "@renderer/components/Pagination/Pagination";
 
-export interface ButtonRecordFace {
-  /** 长宽比分类 */
-  aspectRatioClassification: boolean;
-  /** 计算放大倍率 */
-  calculateTheMagnification: boolean;
-  /** 目标目录 */
-  folderName: string;
-  key: string;
-  /** 按钮名称 */
-  label: string;
-  /** 快捷键编码 */
-  shortcutKey: string;
-  /** 快捷键别名 */
-  shortcutKeyAlias: string;
-}
-const buttonList: ButtonRecordFace[] = [
-  {
-    key: "delete",
-    label: "不要了",
-    folderName: "待删除",
-    aspectRatioClassification: false,
-    calculateTheMagnification: false,
-    shortcutKey: "Numpad0",
-    shortcutKeyAlias: "Num 0"
-  },
-  {
-    key: "auto",
-    label: "自动",
-    folderName: "自动",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad1",
-    shortcutKeyAlias: "Num 1"
-  },
-  {
-    key: "PC",
-    label: "PC",
-    folderName: "PC",
-    aspectRatioClassification: false,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad2",
-    shortcutKeyAlias: "Num 2"
-  },
-  {
-    key: "Moblie",
-    label: "Moblie",
-    folderName: "Moblie",
-    aspectRatioClassification: false,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad3",
-    shortcutKeyAlias: "Num 3"
-  },
-  {
-    key: "1x1",
-    label: "1:1",
-    folderName: "1x1",
-    aspectRatioClassification: false,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad4",
-    shortcutKeyAlias: "Num 4"
-  },
-  {
-    key: "nfsw",
-    label: "色图",
-    folderName: "色图",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad5",
-    shortcutKeyAlias: "Num 5"
-  },
-  {
-    key: "H",
-    label: "H图",
-    folderName: "H图",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad6",
-    shortcutKeyAlias: "Num 6"
-  },
-  {
-    key: "collect",
-    label: "收集",
-    folderName: "收集",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad7",
-    shortcutKeyAlias: "Num 7"
-  },
-  {
-    key: "3",
-    label: "三次元",
-    folderName: "3",
-    aspectRatioClassification: false,
-    calculateTheMagnification: false,
-    shortcutKey: "Numpad8",
-    shortcutKeyAlias: "Num 8"
-  },
-  {
-    key: "LingMeng",
-    label: "博丽灵梦",
-    folderName: "博丽灵梦",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "Numpad9",
-    shortcutKeyAlias: "Num 9"
-  },
-  {
-    key: "avatar",
-    label: "头像",
-    folderName: "头像",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "NumpadAdd",
-    shortcutKeyAlias: "Num +"
-  },
-  {
-    key: "other",
-    label: "其他",
-    folderName: "其他",
-    aspectRatioClassification: true,
-    calculateTheMagnification: true,
-    shortcutKey: "NumpadSubtract",
-    shortcutKeyAlias: "Num -"
-  }
-];
+import type { CategoryButtonGroupRecord } from "@renderer/store/store";
+// import type { CheckboxOptionType } from "@renderer/components/Radio";
 
 interface ButtonPanleFace {
-  onClick: (buttonInfo: ButtonRecordFace) => void;
+  onClick: (buttonInfo: CategoryButtonGroupRecord) => void;
 }
 
 export default function ButtonPanle(params: ButtonPanleFace) {
   const { onClick } = params;
 
+  const throttleID = useRef<number>(undefined);
+  const buttonDivRef = createRef<HTMLDivElement>();
+  const Store = useStore();
+  const buttonList = Store.config.categoryButtonGroup.buttons;
+  const [paginationConfig, setPaginationConfig] = useState({
+    pageSize: 0,
+    current: 1,
+    total: buttonList.length
+  });
+
   useEffect(() => {
     function keyup(event: KeyboardEvent) {
-      const code = event.code;
+      const keyCode = event.keyCode;
 
-      const found = buttonList.find((btn) => btn.shortcutKey === code);
-      if(found){
-        onClick(found)
+      const found = buttonList.find((btn) => btn.shortcutKey?.shortcutKeyCode === keyCode);
+      if (found && !throttleID.current) {
+        throttleID.current = window.setTimeout(() => {
+          try {
+            throttleID.current = undefined;
+          } catch {}
+        }, 500);
+        onClick(found);
       }
     }
     document.body.addEventListener("keyup", keyup);
     return () => {
       document.body.removeEventListener("keyup", keyup);
     };
-  });
+  }, [buttonList]);
   function renderButtons() {
-    return buttonList.map((button) => {
+    const startIndex = (paginationConfig.current - 1) * paginationConfig.pageSize;
+    const endIndex = startIndex + paginationConfig.pageSize;
+    const array = buttonList.slice(startIndex, endIndex);
+
+    return array.map((button) => {
       function handleClick() {
+        if (throttleID.current) return;
+        throttleID.current = window.setTimeout(() => {
+          try {
+            throttleID.current = undefined;
+          } catch {}
+        }, 500);
         onClick(button);
       }
       return (
-        <Button key={button.key} type="dark" onClick={handleClick}>
+        <Button key={button.key} onClick={handleClick}>
           <span>{button.label}</span>
-          <span>{button.shortcutKeyAlias}</span>
+          <span>{button.shortcutKey?.shortcutKeyAlias}</span>
         </Button>
       );
     });
   }
+
+  useEffect(() => {
+    if (buttonDivRef.current) {
+      const clientHeight = buttonDivRef.current.clientHeight;
+      const pageSize = Math.floor((clientHeight + 20) / 70) * 2;
+      setPaginationConfig({
+        current: 1,
+        pageSize,
+        total: buttonList.length
+      });
+    }
+  }, [buttonDivRef.current]);
+
+  function PaginationChange(paginationData: PaginationFace) {
+    const newPaginationConfig = Object.assign({}, paginationConfig, {
+      current: paginationData.pageNumber
+    });
+    setPaginationConfig(newPaginationConfig);
+  }
+
   return (
-    <div>
-      <p>分类选项</p>
-      <div className={style["button-div"]}>{renderButtons()}</div>
+    <div className={style["base"]}>
+      <div ref={buttonDivRef} className={style["button-div"]}>
+        {renderButtons()}
+      </div>
+      <Pagination
+        total={paginationConfig.total}
+        pageSize={paginationConfig.pageSize}
+        current={paginationConfig.current}
+        onChange={PaginationChange}
+      />
     </div>
   );
 }

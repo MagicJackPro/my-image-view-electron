@@ -8,13 +8,14 @@ import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 import ViewImage from "@renderer/components/VIewImage/ViewImage";
 import { useMessage } from "@renderer/components/Message/Message";
-import Collapse from "@renderer/components/Collapse/Collapse";
+import Tabs from "@renderer/components/Tabs/Tabs";
 
 import ModalTable from "./ModalTable";
 import type { Record } from "./ModalTable";
 import FilterFiles from "./FilterFiles";
 import ButtonPanle from "./ButtonPanle";
-import type { ButtonRecordFace } from "./ButtonPanle";
+import type { CategoryButtonGroupRecord } from "@renderer/store/store";
+import AutoSave, { type RefFace } from "./AutoSave";
 
 interface FileFace {
   id: number;
@@ -44,14 +45,15 @@ function ViewImagePage() {
     fileName: "",
     fileSize: "",
     ceateTime: "",
-    resolution: { width: 0, height: 0 }
+    resolution: { width: 0, height: 0 },
+    outputType: ""
   });
   const [src, setSRC] = useState("");
   const [pictureIndex, setPictureIndex] = useState(0);
   const [listV, setListV] = useState(false);
   /** 整理列表 */
   const [listData, setListData] = useState<Record[]>([]);
-
+  const [fullWindowFlag, setFullWindow] = useState(false);
   const [classificationModal, setClassificationModal] = useState({
     visible: false,
     index: 0,
@@ -65,6 +67,8 @@ function ViewImagePage() {
 
   const disableRef = useRef(true);
   const haveOutputFolders = useRef<boolean[]>([]);
+  const isSaving = useRef(false);
+  const AutoSaveRef = useRef<RefFace>(null);
 
   useEffect(() => {
     if (src) {
@@ -76,14 +80,27 @@ function ViewImagePage() {
       const filePath = Store.dirpath + "\\" + fileName;
       try {
         window.api.fs.readPicture(filePath).then((file) => {
-          const fileSize = (file.buffer.length / 1024).toFixed(2).toString() + "KiB";
+          // 计算文件大小
+          function caluSize(bufferLength: number) {
+            const OneMiB = 1048576; // 1024 * 1024
+            if (bufferLength >= OneMiB) {
+              return (bufferLength / 1024 / 1024).toFixed(2) + "MiB";
+            } else {
+              return (bufferLength / 1024).toFixed(2) + "KiB";
+            }
+          }
+          const fileSize = caluSize(file.buffer.length);
+
           const resolution = { width: file.resolution.width, height: file.resolution.height };
+          const outputType =
+            listData.find((record) => record.id === pictureIndex)?.processingMethod || "未分类";
           setFileInfo({
             filePath,
             fileName,
             fileSize,
             ceateTime: formatDate(file.stats.birthtime),
-            resolution
+            resolution,
+            outputType
           });
           setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type.mime })));
 
@@ -97,7 +114,6 @@ function ViewImagePage() {
           duration: 5000
         });
       }
-      // setSRC('local-resource:' + store.dirpath + '\\' + files[0]);
     }
 
     return () => {
@@ -287,7 +303,14 @@ function ViewImagePage() {
     );
   }
 
-  function addListData(buttonInfo: ButtonRecordFace) {
+  function addListData(buttonInfo: CategoryButtonGroupRecord) {
+    if (isSaving.current) {
+      MessageAPI.warning({
+        id: "addListData_isSaving_true",
+        message: "等待保存完毕"
+      });
+      return;
+    }
     if (disableRef.current) return;
     disableRef.current = true;
     if (!fileInfo.fileName) {
@@ -354,129 +377,154 @@ function ViewImagePage() {
       processingMethod: buttonInfo.label,
       outputDirName
     };
-
-    const length = listData.length;
-    let index = 0;
-    let haveAdd = true;
-    for (index = 0; index < length; index++) {
-      if (listData[index].id === pictureIndex) {
-        setListData([...listData.slice(0, index), newRecord, ...listData.slice(index + 1)]);
-        haveAdd = false;
-        break;
-      } else if (listData[index].id > pictureIndex) {
-        setListData([...listData.slice(0, index), newRecord, ...listData.slice(index)]);
-        haveAdd = false;
-        break;
+    function f() {
+      const length = listData.length;
+      let index = 0;
+      let haveAdd = true;
+      for (index = 0; index < length; index++) {
+        if (listData[index].id < pictureIndex) continue;
+        if (listData[index].id === pictureIndex) {
+          const a = [...listData.slice(0, index), newRecord, ...listData.slice(index + 1)];
+          setListData(a);
+          haveAdd = false;
+          return a;
+        } else if (listData[index].id > pictureIndex) {
+          const a = [...listData.slice(0, index), newRecord, ...listData.slice(index)];
+          setListData(a);
+          haveAdd = false;
+          return a;
+        }
       }
+      if (haveAdd) {
+        const b = listData.concat([newRecord]);
+        setListData(b);
+        return b;
+      }
+      return listData;
     }
-    if (haveAdd) {
-      setListData(listData.concat([newRecord]));
-    }
+    const newListData = f();
 
     haveOutputFolders.current[pictureIndex] = true;
     if (pictureIndex + 1 >= files.length) {
       disableRef.current = false;
     }
     nextPicture();
+    // autoSave(newListData, files);
+    if (AutoSaveRef.current) {
+      AutoSaveRef.current.dataRequiringUpdating();
+    }
+    if (Store.config.enableAutoSave && AutoSaveRef.current) {
+      AutoSaveRef.current.autoSave(newListData, files);
+    }
+  }
+
+  function onAutoSaving() {
+    disableRef.current = true;
+    isSaving.current = true;
+  }
+
+  function onAutoSaveCompleted() {
+    disableRef.current = false;
+    isSaving.current = false;
   }
 
   /** 手动保存 */
   async function manualSave() {
-    try {
-      if (disableRef.current) return;
-      disableRef.current = true;
-
-      const config: Electron.MessageBoxOptions = {
-        message: "是否保存临时进度",
-        buttons: ["确认", "取消"],
-        defaultId: 1,
-        title: "二次确认：保存临时进度",
-        detail: "此操作会创建文件在选择的文件目录下"
-      };
-
-      const MessageBoxReturnValue = await window.api.dialog.SecondaryConfirmation(config);
-      if (MessageBoxReturnValue.response !== 0) {
+    if (disableRef.current) return;
+    if (isSaving.current) return;
+    disableRef.current = true;
+    if (AutoSaveRef.current) {
+      isSaving.current = true;
+      AutoSaveRef.current.manualSave(listData, files).finally(() => {
+        isSaving.current = false;
         disableRef.current = false;
-        return;
-      }
-      if (listData.length === files.length) {
-        await invoke("db:create", Store.dirpath);
-        await invoke("db:insertInto", Store.dirpath, listData);
-      } else {
-        const saveData: Record[] = files.map((file) => ({
-          id: file.id,
-          name: file.name,
-          processingMethod: "",
-          outputDirName: []
-        }));
-        listData.forEach((listRecord) => {
-          if (saveData[listRecord.id].outputDirName.length === 0) {
-            saveData[listRecord.id] = listRecord;
-          }
-        });
-        await invoke("db:create", Store.dirpath);
-        await invoke("db:insertInto", Store.dirpath, saveData);
-      }
-      MessageAPI.success({
-        message: "手动保存成功",
-        id: "manualSave"
-      });
-      disableRef.current = false;
-    } catch (error) {
-      disableRef.current = false;
-      MessageAPI.error({
-        message: "手动保存失败",
-        id: "manualSave"
       });
     }
   }
 
+  function handlerChangeFullWindow(flag: boolean) {
+    setFullWindow(flag);
+  }
+
+  const controlPanleStyle = fullWindowFlag
+    ? {
+        width: 0,
+        flex: "0 0 0px",
+        borderWidth: 0,
+        padding: 0
+      }
+    : {};
+
   return (
     <div className={[style["base"], style["base-flex"]].join(" ")}>
-      <Aside fileInfo={fileInfo} />
-      <ViewImage src={src} resolution={fileInfo.resolution} />
-      <div className={style["control-panle"]}>
-        <Button type="dark" block onClick={lastPage}>
-          回到上一步
-        </Button>
-        <div className={style["page-number-box"]}>
-          <span>{`${pictureIndex + 1}/${files.length}`}</span>
-          <input
-            autoComplete="off"
-            className={style["input-number"]}
-            id="toIndex"
-            max={files.length}
-            min={1}
-            step={1}
-            type="number"
-          />
-          <Button type="dark" onClick={toIndexPicTure}>
-            跳转
-          </Button>
-        </div>
-        <div className={style["flex-row-jc-between"]}>
-          <Button type="dark" onClick={lastPicture}>
-            上一张
-          </Button>
-          <Button type="dark" onClick={nextPicture}>
-            下一张
-          </Button>
-        </div>
-        <Collapse contentClassName={style["collapse-content"]}>
-          <div className={style["flex-row-jc-between"]}>
-            <Button type="dark" onClick={showList}>
-              整理列表
-            </Button>
+      <div className={style.aside} style={controlPanleStyle}>
+        <Aside fileInfo={fileInfo} />
+        <AutoSave
+          ref={AutoSaveRef}
+          dirpath={Store.dirpath}
+          enableAutoSave={Store.config.enableAutoSave}
+          delayAutoSave={Store.config.delayAutoSave}
+          haveSaveData={false}
+          onAutoSaving={onAutoSaving}
+          onAutoSaveCompleted={onAutoSaveCompleted}
+        />
+      </div>
+      <ViewImage
+        src={src}
+        resolution={fileInfo.resolution}
+        onChangeFullWindow={handlerChangeFullWindow}
+      />
+      <div className={style["control-panle"]} style={controlPanleStyle}>
+        <Tabs
+          defaultActiveKey="pageControl"
+          items={[
+            {
+              key: "pageControl",
+              label: "页面控制",
+              children: (
+                <div className={style["xxx-01"]}>
+                  <div className={style["page-number-box"]}>
+                    <span>{`${pictureIndex + 1}/${files.length}`}</span>
+                    <input
+                      autoComplete="off"
+                      className={style["input-number"]}
+                      id="toIndex"
+                      max={files.length}
+                      min={1}
+                      step={1}
+                      type="number"
+                    />
+                    <Button onClick={toIndexPicTure}>跳转</Button>
+                  </div>
+                  <div className={style["flex-row-jc-between"]}>
+                    <Button onClick={lastPicture}>上一张</Button>
+                    <Button onClick={nextPicture}>下一张</Button>
+                  </div>
+                </div>
+              )
+            },
+            {
+              key: "data",
+              label: "数据管理",
+              children: (
+                <div className={style["xxx-01"]}>
+                  <Button block onClick={lastPage}>
+                    回到上一步
+                  </Button>
+                  <div className={style["flex-row-jc-between"]}>
+                    <Button onClick={showList}>整理列表</Button>
 
-            <Button type="dark" onClick={manualSave}>
-              临时保存
-            </Button>
-          </div>
-          <Button type="dark" block onClick={Classification}>
-            执行
-          </Button>
-        </Collapse>
-        <ButtonPanle onClick={addListData} />
+                    <Button onClick={manualSave}>临时保存</Button>
+                  </div>
+                  <Button block onClick={Classification}>
+                    执行
+                  </Button>
+                </div>
+              )
+            }
+          ]}
+        />
+        <ButtonPanle key="ButtonPanl" onClick={addListData} />
       </div>
       <ModalTable
         visible={listV}
