@@ -2,7 +2,7 @@ import style from "./Select.module.css";
 import { useState, useEffect, createRef } from "react";
 
 import { Arrow } from "@renderer/assets/icon/icon";
-import type { MouseEvent} from "react"
+import type { MouseEvent } from "react";
 
 type PlacementType = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 
@@ -13,10 +13,10 @@ export interface OptionFace {
 
 interface SelectFace<T> {
   options: (T & OptionFace)[];
-  defaultValue?: string | number;
+  defaultValue?: OptionFace["value"] | OptionFace;
   onChange?: (option: T) => void;
   placement?: PlacementType;
-  value?: string | number;
+  value?: OptionFace["value"] | OptionFace;
 }
 export default function Select<T = OptionFace>(params: SelectFace<T>) {
   const { defaultValue, value, options, placement = "bottomLeft", onChange } = params;
@@ -28,11 +28,24 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
 
   useEffect(() => {
     const tmpVal = value ? value : defaultValue;
+    if (!tmpVal) {
+      return;
+    }
+
+    if(typeof tmpVal === "object"){
+      const newValue = {
+        label: tmpVal.label,
+        value:tmpVal.value
+      }
+      return setInternalValue(newValue);
+    }
+
     const found = options.find((option) => option.value === tmpVal);
     if (found) {
       setInternalValue(found);
     } else {
-      setInternalValue(undefined);
+      const newValue: OptionFace = { label: tmpVal?.toString(), value: tmpVal };
+      setInternalValue(newValue);
     }
   }, [value, defaultValue]);
 
@@ -71,8 +84,8 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
     });
   }
 
-  function changeOptions(event:MouseEvent<HTMLDivElement>) {
-    event.target
+  function changeOptions(event: MouseEvent<HTMLDivElement>) {
+    event.target;
     setVisible((v) => !v);
   }
 
@@ -101,7 +114,7 @@ export default function Select<T = OptionFace>(params: SelectFace<T>) {
 
   function handlerBlur() {
     closeOptions();
-    return ;
+    return;
   }
 
   return (

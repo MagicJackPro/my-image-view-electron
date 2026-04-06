@@ -496,10 +496,12 @@ function ViewImagePage() {
                     />
                     <Button onClick={toIndexPicTure}>跳转</Button>
                   </div>
-                  <div className={style["flex-row-jc-between"]}>
-                    <Button onClick={lastPicture}>上一张</Button>
-                    <Button onClick={nextPicture}>下一张</Button>
-                  </div>
+                  <Button block onClick={lastPicture} debounced={{ time: 300 }}>
+                    上一张
+                  </Button>
+                  <Button block onClick={nextPicture} debounced={{ time: 300 }}>
+                    下一张
+                  </Button>
                 </div>
               )
             },
@@ -512,11 +514,15 @@ function ViewImagePage() {
                     回到上一步
                   </Button>
                   <div className={style["flex-row-jc-between"]}>
-                    <Button onClick={showList}>整理列表</Button>
+                    <Button onClick={showList} debounced={{ time: 300 }}>
+                      整理列表
+                    </Button>
 
-                    <Button onClick={manualSave}>临时保存</Button>
+                    <Button onClick={manualSave} debounced={{ time: 300 }}>
+                      临时保存
+                    </Button>
                   </div>
-                  <Button block onClick={Classification}>
+                  <Button block onClick={Classification} debounced={{ time: 300 }}>
                     执行
                   </Button>
                 </div>

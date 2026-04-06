@@ -1,11 +1,10 @@
-import { useEffect, useRef, createRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import style from "./ButtonPanle.module.css";
 import Button from "@renderer/components/Button/Button";
 import { useStore } from "@renderer/hook/useStores";
 import Pagination, { type PaginationFace } from "@renderer/components/Pagination/Pagination";
 
 import type { CategoryButtonGroupRecord } from "@renderer/store/store";
-// import type { CheckboxOptionType } from "@renderer/components/Radio";
 
 interface ButtonPanleFace {
   onClick: (buttonInfo: CategoryButtonGroupRecord) => void;
@@ -15,7 +14,7 @@ export default function ButtonPanle(params: ButtonPanleFace) {
   const { onClick } = params;
 
   const throttleID = useRef<number>(undefined);
-  const buttonDivRef = createRef<HTMLDivElement>();
+  const buttonDivRef = useRef<HTMLDivElement>(null);
   const Store = useStore();
   const buttonList = Store.config.categoryButtonGroup.buttons;
   const [paginationConfig, setPaginationConfig] = useState({
@@ -68,7 +67,10 @@ export default function ButtonPanle(params: ButtonPanleFace) {
   }
 
   useEffect(() => {
-    if (buttonDivRef.current) {
+    function resize() {
+      if (!buttonDivRef.current) {
+        return;
+      }
       const clientHeight = buttonDivRef.current.clientHeight;
       const pageSize = Math.floor((clientHeight + 20) / 70) * 2;
       setPaginationConfig({
@@ -77,6 +79,11 @@ export default function ButtonPanle(params: ButtonPanleFace) {
         total: buttonList.length
       });
     }
+    resize();
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
   }, [buttonDivRef.current]);
 
   function PaginationChange(paginationData: PaginationFace) {
@@ -92,6 +99,7 @@ export default function ButtonPanle(params: ButtonPanleFace) {
         {renderButtons()}
       </div>
       <Pagination
+        className={style["pagination"]}
         total={paginationConfig.total}
         pageSize={paginationConfig.pageSize}
         current={paginationConfig.current}

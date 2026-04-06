@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useRef } from "react";
-import type { MouseEvent, TouchEvent } from "react";
+import { useEffect, useState, useRef } from "react";
+import type { MouseEvent, TouchEvent, Touch } from "react";
 import style from "./ViewImage.module.css";
 import Button from "../Button/Button";
 import {
@@ -24,26 +24,19 @@ interface ViewImageFace {
   onChangeFullWindow: (fullWindowFlag: boolean) => void;
 }
 
-function translateImageStyle(
+function updateImg(
+  imgElement: HTMLImageElement | null,
   scale: number,
   translate: { x: number; y: number },
-  grab: boolean,
-  resolution: { width: number; height: number }
+  angle: number
 ) {
-  const finalResolution = { width: "0", height: "0" };
-  if (scale === 100) {
-    finalResolution.width = resolution.width.toString();
-    finalResolution.height = resolution.height.toString();
-  } else {
-    finalResolution.width = ((resolution.width * scale) / 100).toFixed(2);
-    finalResolution.height = ((resolution.height * scale) / 100).toFixed(2);
-  }
-
-  return (
-    (grab ? "cursor: grab;" : "") +
-    `transform: translate(${translate.x}px, ${translate.y}px);` +
-    `width: ${finalResolution.width}px;height: ${finalResolution.height}px;`
-  );
+  requestAnimationFrame(() => {
+    if (imgElement === null) return;
+    imgElement.style.transform =
+      ` translate(${translate.x}px, ${translate.y}px)` +
+      ` rotate(${angle}deg)` +
+      ` scale(${scale / 100})`;
+  });
 }
 
 export default function ViewImage(params: ViewImageFace) {
@@ -60,9 +53,12 @@ export default function ViewImage(params: ViewImageFace) {
   const boxRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const mouseDown = useRef(false);
-  const canMove = useRef(false);
-  const lastMouseMovePoint = useRef({ x: 0, y: 0 });
+  /* 旋转角度 */
+  const currentAngle = useRef(0);
   const translateRef = useRef({ x: 0, y: 0 });
+  const movingPoint = useRef({ x: 0, y: 0 });
+  const resizeRef = useRef<Function>(undefined);
+  const Gesture = useRef<IGesture>(getDefaultGesture());
 
   useEffect(() => {
     function documentResize(init: boolean) {
@@ -87,16 +83,10 @@ export default function ViewImage(params: ViewImageFace) {
         let Temporary = state.Percentage;
         if (init || state.Percentage === state.AdaptivePercentage) {
           Temporary = newPercentage;
-          if (imgRef.current) {
-            translateRef.current = { x: 0, y: 0 };
-            canMove.current = false;
-            imgRef.current.style = translateImageStyle(
-              newPercentage,
-              translateRef.current,
-              false,
-              resolution
-            );
-          }
+          translateRef.current = { x: 0, y: 0 };
+          currentAngle.current = 0;
+
+          updateImg(imgRef.current, newPercentage, translateRef.current, currentAngle.current);
         }
         return {
           width: resolution.width,
@@ -109,10 +99,11 @@ export default function ViewImage(params: ViewImageFace) {
 
     documentResize(true);
     const listener = debounce(() => documentResize(false), 500);
-
+    resizeRef.current = listener;
     window.addEventListener("resize", listener);
 
     return () => {
+      resizeRef.current = undefined;
       window.removeEventListener("resize", listener);
     };
   }, [src]);
@@ -126,34 +117,56 @@ export default function ViewImage(params: ViewImageFace) {
       AdaptivePercentage: imageScle.AdaptivePercentage
     });
 
-    if (imgRef.current) {
-      canMove.current = newPercentage > imageScle.AdaptivePercentage;
-      if (!canMove.current) {
-        translateRef.current = { x: 0, y: 0 };
-      }
-      imgRef.current.style = translateImageStyle(
-        newPercentage,
-        translateRef.current,
-        canMove.current,
-        resolution
-      );
-    }
+    updateImg(imgRef.current, newPercentage, translateRef.current, currentAngle.current);
   }
 
   function handlerTouchStart(event: TouchEvent<HTMLImageElement>) {
-    const changedTouchesFrist = event.changedTouches[0];
-    mouseDown.current = true;
-    lastMouseMovePoint.current = { x: changedTouchesFrist.clientX, y: changedTouchesFrist.clientY };
+    /** 当前激活触点 */
+    const Touches = event.touches;
+    if (!Gesture.current.enable && Touches.length > 1) {
+      const PointA = Touches[0];
+      const PointB = Touches[1];
+
+      const startDis = getDis(PointA, PointB);
+      const startDeg = getDeg(PointA, PointB);
+      const pagePointX = getMiddlePoint(PointA.pageX, PointB.pageX);
+      const pagePointY = getMiddlePoint(PointA.pageY, PointB.pageY);
+      movingPoint.current = {
+        x: pagePointX,
+        y: pagePointY
+      };
+      Gesture.current = {
+        enable: true,
+        percentage: imageScle.Percentage,
+        roateDeg: 0,
+        startDeg,
+        startDis,
+        pagePoint: { x: pagePointX, y: pagePointY }
+      };
+    } else {
+      const changedTouchesFrist = Touches[0];
+      Gesture.current = {
+        enable: false,
+        percentage: imageScle.Percentage,
+        roateDeg: 0,
+        startDeg:NaN,
+        startDis: NaN,
+        pagePoint: { x: changedTouchesFrist.clientX, y: changedTouchesFrist.clientY }
+      };
+    }
   }
 
   function handleMouseDown(event: MouseEvent) {
     event.preventDefault();
     mouseDown.current = true;
-    lastMouseMovePoint.current = { x: event.clientX, y: event.clientY };
+    movingPoint.current = { x: event.clientX, y: event.clientY };
   }
 
-  function handlerTouchEnd() {
-    mouseDown.current = false;
+  function handlerTouchEnd(event: TouchEvent<HTMLImageElement>) {
+    if (event.touches.length < 2) {
+      currentAngle.current = currentAngle.current + Gesture.current.roateDeg;
+      Gesture.current = getDefaultGesture();
+    }
   }
 
   function handleMouseUp() {
@@ -165,11 +178,52 @@ export default function ViewImage(params: ViewImageFace) {
   }
 
   function handlerTouchMove(event: TouchEvent<HTMLImageElement>) {
-    const changedTouchesFrist = event.changedTouches[0];
-    if (mouseDown.current && canMove.current && imgRef.current) {
-      const xDifference = changedTouchesFrist.clientX - lastMouseMovePoint.current.x;
-      const yDifference = changedTouchesFrist.clientY - lastMouseMovePoint.current.y;
-      lastMouseMovePoint.current = {
+    if (!imgRef.current) {
+      return;
+    }
+    /** 当前激活触点 */
+    const Touches = event.touches;
+    if (Touches.length > 1) {
+      const PointA = Touches[0];
+      const PointB = Touches[1];
+
+      const nowDis = getDis(PointA, PointB);
+      const nowDeg = getDeg(PointA, PointB);
+
+      const { percentage, startDis } = Gesture.current;
+
+      const Scale = Math.floor((nowDis / startDis) * percentage);
+
+      const pagePointX = getMiddlePoint(PointA.pageX, PointB.pageX);
+      const pagePointY = getMiddlePoint(PointA.pageY, PointB.pageY);
+
+      const PagePoint = Gesture.current.pagePoint;
+      const xDifference = pagePointX - PagePoint.x;
+      const yDifference = pagePointY - PagePoint.y;
+
+      Gesture.current.pagePoint = { x: pagePointX, y: pagePointY };
+
+      translateRef.current = {
+        x: translateRef.current.x + xDifference,
+        y: translateRef.current.y + yDifference
+      };
+
+      // 旋转处理
+      const roateDeg = nowDeg - Gesture.current.startDeg;
+      const Rotation = currentAngle.current + roateDeg;
+      Gesture.current.roateDeg = roateDeg;
+
+      updateImg(imgRef.current, Scale, translateRef.current, Rotation);
+
+      setImageScle((state) => {
+        return { ...state, Percentage: Scale };
+      });
+    } else {
+      const changedTouchesFrist = Touches[0];
+      const PagePoint = Gesture.current.pagePoint;
+      const xDifference = changedTouchesFrist.clientX - PagePoint.x;
+      const yDifference = changedTouchesFrist.clientY - PagePoint.y;
+      Gesture.current.pagePoint = {
         x: changedTouchesFrist.clientX,
         y: changedTouchesFrist.clientY
       };
@@ -177,33 +231,24 @@ export default function ViewImage(params: ViewImageFace) {
         x: translateRef.current.x + xDifference,
         y: translateRef.current.y + yDifference
       };
-      canMove.current = imageScle.Percentage > imageScle.AdaptivePercentage;
-      imgRef.current.style = translateImageStyle(
-        imageScle.Percentage,
-        translateRef.current,
-        canMove.current,
-        resolution
-      );
+
+      updateImg(imgRef.current, imageScle.Percentage, translateRef.current, currentAngle.current);
     }
   }
 
   function handleMouseMove(event: MouseEvent) {
-    if (mouseDown.current && canMove.current && imgRef.current) {
-      const xDifference = event.clientX - lastMouseMovePoint.current.x;
-      const yDifference = event.clientY - lastMouseMovePoint.current.y;
-      lastMouseMovePoint.current = { x: event.clientX, y: event.clientY };
-      translateRef.current = {
-        x: translateRef.current.x + xDifference,
-        y: translateRef.current.y + yDifference
-      };
-      canMove.current = imageScle.Percentage > imageScle.AdaptivePercentage;
-      imgRef.current.style = translateImageStyle(
-        imageScle.Percentage,
-        translateRef.current,
-        canMove.current,
-        resolution
-      );
-    }
+    if (!mouseDown.current) return;
+    event.preventDefault();
+    const xDifference = event.clientX - movingPoint.current.x;
+    const yDifference = event.clientY - movingPoint.current.y;
+
+    movingPoint.current = { x: event.clientX, y: event.clientY };
+    translateRef.current = {
+      x: translateRef.current.x + xDifference,
+      y: translateRef.current.y + yDifference
+    };
+
+    updateImg(imgRef.current, imageScle.Percentage, translateRef.current, currentAngle.current);
   }
 
   function resetTranslate() {
@@ -213,94 +258,88 @@ export default function ViewImage(params: ViewImageFace) {
         Percentage: origin.AdaptivePercentage
       };
     });
+    currentAngle.current = 0;
 
-    if (imgRef.current) {
-      translateRef.current = { x: 0, y: 0 };
-      imgRef.current.style = translateImageStyle(
-        imageScle.AdaptivePercentage,
-        { x: 0, y: 0 },
-        canMove.current,
-        resolution
-      );
-    }
+    translateRef.current = { x: 0, y: 0 };
+    updateImg(imgRef.current, imageScle.AdaptivePercentage, { x: 0, y: 0 }, currentAngle.current);
   }
 
   function thePictureIsCenter() {
-    if (imgRef.current) {
-      translateRef.current = { x: 0, y: 0 };
-      imgRef.current.style = translateImageStyle(
-        imageScle.Percentage,
-        { x: 0, y: 0 },
-        canMove.current,
-        resolution
-      );
-    }
+    translateRef.current = { x: 0, y: 0 };
+    updateImg(imgRef.current, imageScle.AdaptivePercentage, { x: 0, y: 0 }, currentAngle.current);
   }
 
-  const Options: OptionFace[] = useMemo(() => {
-    const defaultOptions: OptionFace[] = [
-      { label: "10%", value: 10 },
-      { label: "25%", value: 25 },
-      { label: "50%", value: 50 },
-      { label: "75%", value: 75 },
-      { label: "100%", value: 100 },
-      { label: "125%", value: 125 },
-      { label: "175%", value: 175 },
-      { label: "200%", value: 200 },
-      { label: "300%", value: 300 },
-      { label: "400%", value: 400 }
-    ];
-    const tempValue = imageScle.AdaptivePercentage;
-
-    let isNeedInserted = true;
-    let index = 0;
-    for (; index < defaultOptions.length; index++) {
-      if (defaultOptions[index].value === tempValue) {
-        isNeedInserted = false;
-        break;
-      }
-      if (defaultOptions[index].value > tempValue) {
-        break;
-      }
-    }
-
-    if (isNeedInserted) {
-      defaultOptions.splice(index, 0, {
-        label: `${imageScle.AdaptivePercentage}%`,
-        value: imageScle.AdaptivePercentage
-      });
-    }
-    return defaultOptions;
-  }, [imageScle.AdaptivePercentage]);
+  const Options: OptionFace[] = [
+    { label: "10%", value: 10 },
+    { label: "25%", value: 25 },
+    { label: "50%", value: 50 },
+    { label: "75%", value: 75 },
+    { label: "100%", value: 100 },
+    { label: "125%", value: 125 },
+    { label: "175%", value: 175 },
+    { label: "200%", value: 200 },
+    { label: "300%", value: 300 },
+    { label: "400%", value: 400 }
+  ];
 
   /** 缩小 */
   function reductionPicture() {
+    if (Gesture.current.enable) {
+      return;
+    }
     const foundIndex = Options.findIndex((option) => option.value === imageScle.Percentage);
-    if (foundIndex > 0) {
+    if (foundIndex === -1) {
+      const target = imageScle.Percentage;
+      let index = 0;
+
+      for (; index < Options.length; index++) {
+        const element = Options[index];
+        if (element.value > target && index !== 0) {
+          return resetSize(Options[index - 1]);
+        }
+      }
+      if (index >= Options.length) {
+        return resetSize(Options[Options.length - 1]);
+      }
+    } else if (foundIndex > 0) {
       resetSize(Options[foundIndex - 1]);
     }
   }
 
   /** 放大 */
   function enlargementPicture() {
+    if (Gesture.current.enable) {
+      return;
+    }
     const foundIndex = Options.findIndex((option) => option.value === imageScle.Percentage);
-    if (foundIndex === -1 || foundIndex + 1 === Options.length) return;
-    const tempVal = Options[foundIndex].value;
-    for (let index = foundIndex + 1; index < Options.length; index++) {
-      if (tempVal < Options[index].value) {
-        resetSize(Options[index]);
-        break;
+    if (foundIndex === -1) {
+      const target = imageScle.Percentage;
+      for (let index = 0; index < Options.length; index++) {
+        const element = Options[index];
+        if (element.value > target) {
+          return resetSize(Options[index]);
+        }
       }
+    } else if (foundIndex > 0 && foundIndex + 1 < Options.length) {
+      resetSize(Options[foundIndex + 1]);
     }
   }
 
   /** 全屏 */
   function handleFullWindow() {
-    // window.api.dialog.SecondaryConfirmation({ message: "开发中" });
+    if (resizeRef.current) {
+      resizeRef.current();
+    }
+
     const newFullWindowFlag = !fullWindowFlag;
     setFullWindow(newFullWindowFlag);
     onChangeFullWindow(newFullWindowFlag);
   }
+
+  const selectValue: OptionFace = {
+    label: `${imageScle.Percentage}%`,
+    value: imageScle.Percentage
+  };
 
   return (
     <div ref={boxRef} className={style["image-box"]}>
@@ -317,7 +356,8 @@ export default function ViewImage(params: ViewImageFace) {
           onMouseOut={handleMouseOut}
           onMouseUp={handleMouseUp}
           src={src}
-          // onLoad={()=>{console.log("<img> onload");}}
+          width={resolution.width}
+          height={resolution.height}
         />
       ) : (
         <p>
@@ -329,7 +369,7 @@ export default function ViewImage(params: ViewImageFace) {
           <Button icon={<Enlargement />} shape="circle" onClick={enlargementPicture} />
         </Tooltip>
         <Select<OptionFace>
-          value={imageScle.Percentage}
+          value={selectValue}
           placement="topRight"
           options={Options}
           onChange={resetSize}
@@ -349,4 +389,59 @@ export default function ViewImage(params: ViewImageFace) {
       </div>
     </div>
   );
+}
+
+interface IGesture {
+  enable: boolean;
+  /** 起始缩放数值 */
+  percentage: number;
+  /** 起始线段长度 */
+  startDis: number;
+  /** 起始角度 */
+  startDeg: number;
+  /** 旋转中角度 */
+  roateDeg: number;
+  /** 触摸中心点 */
+  pagePoint: { x: number; y: number };
+}
+
+function getDefaultGesture(): IGesture {
+  return {
+    enable: false,
+    percentage: 0,
+    startDis: 0,
+    startDeg: 0,
+    roateDeg: 0,
+    pagePoint: { x: 0, y: 0 }
+  };
+}
+
+/** 求两点线段长度
+ * 使用勾股定理
+ */
+function getDis(point: Touch, point2: Touch) {
+  const x = point2.pageX - point.pageX;
+  const y = point2.pageY - point.pageY;
+  return Math.sqrt(x * x + y * y);
+}
+function getDeg(point: Touch, point2: Touch) {
+  const x = point2.pageX - point.pageX;
+  const y = point2.pageY - point.pageY;
+  // return (Math.atan2(y, x) * 180) / Math.PI;
+  return Math.atan2(y, x) * (180 / Math.PI);
+}
+
+function getMiddlePoint(numberA, numberB) {
+  let Max = 0;
+  let Min = 0;
+  if (numberA === numberB) {
+    return numberA;
+  } else if (numberA > numberB) {
+    Max = numberA;
+    Min = numberB;
+  } else {
+    Max = numberB;
+    Min = numberA;
+  }
+  return (Max - Min) / 2 + Min;
 }

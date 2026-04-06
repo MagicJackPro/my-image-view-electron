@@ -38,3 +38,11 @@
   display: flex;
   flex-direction: column;
 }
+
+.pagination {
+  height: 40px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}

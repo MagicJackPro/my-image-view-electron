@@ -41,12 +41,6 @@
 .collapse-content > * {
   margin-bottom: 10px;
 }
-.flex-row-jc-between {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
 .page-number-box {
   display: flex;
   flex-direction: row;

@@ -89,6 +89,7 @@ function AutoSaveComponemt(params: ParametersFace): React.JSX.Element {
       setState(State.ManualSaving);
       const MessageBoxReturnValue = await window.api.dialog.SecondaryConfirmation(config);
       if (MessageBoxReturnValue.response !== 0) {
+        setState(initState);
         return;
       }
       try {
@@ -114,17 +115,9 @@ function AutoSaveComponemt(params: ParametersFace): React.JSX.Element {
       setState(initState);
     },
     autoSave: (listData, files) => {
-      // 没有启用autoSave直接空返回结束
       if (!enableAutoSave) return;
 
-      // 检查creatTime是否存在
-
-      // 检查定时器是否存在
-      // 存在定时器则计算剩余剩余时间
-      // 创建新定时器
-
       if (autoSaveConfig.current.timer) {
-        console.log("清楚定时器 2");
         window.clearTimeout(autoSaveConfig.current.timer);
         autoSaveConfig.current.timer = undefined;
       }
@@ -157,7 +150,6 @@ function AutoSaveComponemt(params: ParametersFace): React.JSX.Element {
             });
           })
           .finally(() => {
-            // 结束后重置定时器配置
             autoSaveConfig.current.timer = undefined;
             autoSaveConfig.current.creatTime = undefined;
             autoSaveConfig.current.endTime = undefined;
@@ -176,14 +168,14 @@ function AutoSaveComponemt(params: ParametersFace): React.JSX.Element {
   function stateLable() {
     switch (state) {
       case State.AutoSaving:
-        return "自动保存中";
+        return <span style={{ color: "yellow", fontWeight: 700 }}>自动保存中</span>;
       case State.AutoSave:
-        return "自动保存已启用";
+        return <span style={{ color: "green", fontWeight: 700 }}>自动保存已启用</span>;
       case State.ManualSaving:
-        return "手动保存中";
+        return <span style={{ color: "yellow", fontWeight: 700 }}>手动保存中</span>;
 
       default:
-        return "自动保存未启用";
+        return <span style={{ color: "gray", fontWeight: 700 }}>自动保存未启用</span>;
     }
   }
 

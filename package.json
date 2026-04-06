@@ -1,7 +1,7 @@
 {
   "name": "my-image-view-electron",
-  "version": "1.0.5",
-  "description": "An Electron application with React and TypeScript",
+  "version": "1.0.6",
+  "description": "my image view electron",
   "main": "./out/main/index.js",
   "author": "MagicJack",
   "homepage": "",
@@ -17,7 +17,7 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "node ./build/buildWin.js",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "rebuild": "electron-rebuild -f -w better-sqlite3"
@@ -55,6 +55,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "iconv-lite": "^0.7.2",
     "prettier": "^3.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

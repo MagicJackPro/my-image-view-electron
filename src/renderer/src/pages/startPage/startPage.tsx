@@ -67,7 +67,7 @@ function StartPage() {
       <div className={style.Header}>
         <div>
           <h1>开始</h1>
-          <span>请选择默认文件夹</span>
+          <span>请选择需要筛选文件夹</span>
         </div>
         <div>
           <Button icon={<Setting />} onClick={jumpToSettingPage}>
@@ -86,7 +86,6 @@ function StartPage() {
       <Button onClick={next}>
         下一步
       </Button>
-      {/* <input className={style['hidden-input']} type="file" name="file" onChange={selectFile} /> */}
     </div>
   );
 }

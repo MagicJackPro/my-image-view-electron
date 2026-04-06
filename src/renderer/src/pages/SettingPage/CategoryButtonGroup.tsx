@@ -5,14 +5,13 @@ import Button from "@renderer/components/Button/Button";
 import style from "./CategoryButtonGroup.module.css";
 import Modal from "@renderer/components/Modal/Modal";
 import Form from "@renderer/components/Form/Form";
-import { RadioGroup } from "@renderer/components/Radio";
 import Switch from "@renderer/components/Switch/Switch";
 import Input from "@renderer/components/Input/Input";
 import ShortcutKey from "./ShortcutKey";
+import Tooltip from "@renderer/components/Tooltip/Tooltip";
 import { Arrow, Add, Delete, InfoOutlined } from "@renderer/assets/icon/icon";
-
-import type { CheckboxOptionType } from "@renderer/components/Radio";
 import type { CategoryButtonGroupRecord } from "@renderer/store/store";
+import Pagination, { type PaginationFace } from "@renderer/components/Pagination/Pagination";
 
 interface PropsFace {
   defaultValue?: CategoryButtonGroupRecord[];
@@ -53,6 +52,10 @@ export default function CategoryButtonGroup(props: PropsFace) {
   const [moduleConfig, dispatch] = useReducer<ModuleConfigFace, [action: ActionType]>(reducer, {
     visible: false,
     mode: null
+  });const [paginationConfig, setPaginationConfig] = useState({
+    pageSize: 0,
+    current: 1,
+    total: btns.length
   });
 
   const FormInstance = Form.useForm();
@@ -139,37 +142,47 @@ export default function CategoryButtonGroup(props: PropsFace) {
       return (
         <div key={btn.key}>
           <div>
-            <span>{index + 1}:</span>
+            <span>{index + 1}.&nbsp;</span>
             <span>{btn.label}</span>
           </div>
           <div>
             <span>{btn.folderName}</span>
           </div>
-          <div>
+          <div className={style["edit-block-btns"]}>
             {Boolean(index) && (
-              <Button
-                shape="circle"
-                icon={<Arrow style={{ transform: "rotate(180deg)", color: "#fff" }} />}
-                onClick={() => moveBtn(index, "subtract")}
-              />
+              <Tooltip title="上移">
+                <Button
+                  shape="circle"
+                  icon={<Arrow style={{ transform: "rotate(180deg)", color: "#fff" }} />}
+                  onClick={() => moveBtn(index, "subtract")}
+                />
+              </Tooltip>
             )}
             {index + 1 !== buttons.length && (
+              <Tooltip title="下移">
+                <Button
+                  shape="circle"
+                  icon={<Arrow style={{ color: "#fff" }} />}
+                  onClick={() => moveBtn(index, "add")}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="添加">
+              <Button shape="circle" icon={<Add />} />
+            </Tooltip>
+            <Tooltip title="删除">
               <Button
                 shape="circle"
-                icon={<Arrow style={{ color: "#fff" }} />}
-                onClick={() => moveBtn(index, "add")}
+                icon={<Delete />}
+                danger
+                onClick={() => {
+                  deleteBtn(index);
+                }}
               />
-            )}
-            <Button shape="circle" icon={<Add />} />
-            <Button
-              shape="circle"
-              icon={<Delete />}
-              danger
-              onClick={() => {
-                deleteBtn(index);
-              }}
-            />
-            <Button shape="circle" icon={<InfoOutlined />} onClick={infoClick} />
+            </Tooltip>
+            <Tooltip title="详细信息">
+              <Button shape="circle" icon={<InfoOutlined />} onClick={infoClick} />
+            </Tooltip>
           </div>
         </div>
       );
@@ -196,24 +209,32 @@ export default function CategoryButtonGroup(props: PropsFace) {
     dispatch("close");
   }
 
-  const RadioOptions: CheckboxOptionType[] = [
-    { label: "主要", value: "Mainly" },
-    { label: "次要", value: "Secondary" }
-  ];
+  function PaginationChange(paginationData: PaginationFace) {
+    const newPaginationConfig = Object.assign({}, paginationConfig, {
+      current: paginationData.pageNumber
+    });
+    setPaginationConfig(newPaginationConfig);
+  }
+
   const disenabled = moduleConfig.mode === "preview";
   return (
     <div className={style["base"]}>
       <div className={style["cgb-main"]}>{renderListItem()}</div>
       <div className={style["cgb-aside"]}>
         <Button onClick={openAddModal}>添加按钮</Button>
-        <Button>编辑按钮</Button>
       </div>
       <div className={style["preview"]}>
         <div className={style["preview-head"]}>
           <span>预览界面</span>
         </div>
-        <RadioGroup optionType="button" block options={RadioOptions} />
         <div className={style["preview-body"]}>{renderBtns()}</div>
+        <Pagination
+          className={style["pagination"]}
+          total={paginationConfig.total}
+          pageSize={paginationConfig.pageSize}
+          current={paginationConfig.current}
+          onChange={PaginationChange}
+        />
       </div>
       <Modal visible={moduleConfig.visible}>
         <Form form={FormInstance}>

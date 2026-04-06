@@ -91,7 +91,7 @@ export default function FilterFiles(params: FilterFilesFace) {
         isDone: false
       });
       // 筛选支持读取的图片
-      const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp"];
+      const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp", "image/avif"];
 
       const length = originList.length;
       for (let index = 0; index < length; index++) {
@@ -171,6 +171,9 @@ export default function FilterFiles(params: FilterFilesFace) {
   }
 
   function renderModalContent() {
+    if (!visible) {
+      return <></>;
+    }
     const body = readFileFailArrayRef.current.slice(0, 5).map((object, index) => {
       return (
         <div>
@@ -209,6 +212,8 @@ export default function FilterFiles(params: FilterFilesFace) {
   }
   //#endregion
 
+  const showInformations = Boolean(readFileFailArrayRef.current.length);
+
   return (
     <div className={style["base"]}>
       <div className={style["body"]}>
@@ -237,7 +242,7 @@ export default function FilterFiles(params: FilterFilesFace) {
         </div>
         <div className={style["button-box"]}>
           <Button onClick={onlastPage}>回到上一步</Button>
-          <Button onClick={showDetails}>显示详情</Button>
+          {showInformations && <Button onClick={showDetails}>显示详情</Button>}
           {progress.isDone && <Button onClick={done}>开始分类</Button>}
         </div>
       </div>

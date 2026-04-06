@@ -178,7 +178,6 @@ ipcMain.handle("fc:readConfig", async () => {
   //  验证路径,不存在则抛出异常
   try {
     await access(paths.path);
-    console.log("Path exists.");
     const originalString = await readFile(paths.path, {
       encoding: "utf-8"
     });

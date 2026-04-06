@@ -92,7 +92,6 @@ export default function ModalTable(params: ModalTableFace) {
 
   function renderList() {
     // 创建异步读取图片渲染缩略图
-    // const invoke = window.electron.ipcRenderer.invoke;
     return currentList.map((value, index) => {
       return (
         <tr key={index}>

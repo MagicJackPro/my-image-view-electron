@@ -4,7 +4,7 @@
 }
 .cgb-main {
   height: 600px;
-  width: 262px;
+  width: 300px;
 
   padding-top: 10px;
   margin-right: 20px;
@@ -88,4 +88,13 @@
 
   display: flex;
   flex-direction: column;
+}
+
+.edit-block-btns {
+  display: flex;
+  flex-direction: row;
+}
+
+.edit-block-btns > * {
+  margin-right: 10px;
 }

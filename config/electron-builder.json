@@ -1,0 +1,7 @@
+{
+  "appId": "MagicJack.imageViewElectron",
+  "mac": {
+    "category": "MagicJack.app.imageViewElectron.type"
+  },
+  "productName": "my-image-view-electron"
+}

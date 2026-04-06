@@ -11,7 +11,7 @@ export default defineConfig({
   },
   renderer: {
     define: {
-      __APP_VERSION__: "\'v1.0.5\'",
+      __APP_VERSION__: "\'v1.0.6\'",
     },
     resolve: {
       alias: {
