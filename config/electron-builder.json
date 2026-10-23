@@ -1,7 +1,11 @@
 {
   "appId": "MagicJack.imageViewElectron",
+  "win": {
+    "icon": "build/icon.png"
+  },
   "mac": {
     "category": "MagicJack.app.imageViewElectron.type"
   },
-  "productName": "my-image-view-electron"
+  "productName": "my-image-view-electron",
+  "asarUnpack": ["resources/**"]
 }

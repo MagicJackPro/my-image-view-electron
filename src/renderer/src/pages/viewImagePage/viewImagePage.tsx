@@ -2,20 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useStore } from "@renderer/hook/useStores";
 import Aside from "@renderer/components/Aside/Aside";
-import type { AsideFace } from "@renderer/components/Aside/Aside";
 import style from "./viewImagePage.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 import ViewImage from "@renderer/components/VIewImage/ViewImage";
-import { useMessage } from "@renderer/components/Message/Message";
+import useMessage from "@renderer/hook/useMessage";
 import Tabs from "@renderer/components/Tabs/Tabs";
 
 import ModalTable from "./ModalTable";
-import type { Record } from "./ModalTable";
 import FilterFiles from "./FilterFiles";
 import ButtonPanle from "./ButtonPanle";
+import AutoSave from "./AutoSave";
+import { getDateFullString } from "@renderer/utility/date";
+
+import type { RefFace } from "./AutoSave";
+import type { AsideFace } from "@renderer/components/Aside/Aside";
 import type { CategoryButtonGroupRecord } from "@renderer/store/store";
-import AutoSave, { type RefFace } from "./AutoSave";
 
 interface FileFace {
   id: number;
@@ -26,14 +28,6 @@ interface FileFace {
 const OutHeight = 1080;
 const OutWidth = 1920;
 
-function formatDate(date: Date) {
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const second = date.getSeconds();
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hour > 9 ? hour : "0" + hour}:${minute > 9 ? minute : "0" + minute}:${second > 9 ? second : "0" + second}`;
-}
-
-const invoke = window.electron.ipcRenderer.invoke;
 function ViewImagePage() {
   const MessageAPI = useMessage();
   const Store = useStore();
@@ -52,7 +46,7 @@ function ViewImagePage() {
   const [pictureIndex, setPictureIndex] = useState(0);
   const [listV, setListV] = useState(false);
   /** 整理列表 */
-  const [listData, setListData] = useState<Record[]>([]);
+  const [listData, setListData] = useState<NSqlite.Record[]>([]);
   const [fullWindowFlag, setFullWindow] = useState(false);
   const [classificationModal, setClassificationModal] = useState({
     visible: false,
@@ -77,40 +71,46 @@ function ViewImagePage() {
     }
     if (files.length > 0 && files.length >= pictureIndex + 1) {
       const fileName = files[pictureIndex].name;
-      const filePath = Store.dirpath + "\\" + fileName;
+      const filePath = [Store.dirpath, fileName];
       try {
-        window.api.fs.readPicture(filePath).then((file) => {
-          // 计算文件大小
-          function caluSize(bufferLength: number) {
-            const OneMiB = 1048576; // 1024 * 1024
-            if (bufferLength >= OneMiB) {
-              return (bufferLength / 1024 / 1024).toFixed(2) + "MiB";
-            } else {
-              return (bufferLength / 1024).toFixed(2) + "KiB";
+        window.api.fs
+          .readPicture(filePath)
+          .then((file) => {
+            // 计算文件大小
+            function caluSize(bufferLength: number) {
+              const OneMiB = 1048576; // 1024 * 1024
+              if (bufferLength >= OneMiB) {
+                return (bufferLength / 1024 / 1024).toFixed(2) + "MiB";
+              } else {
+                return (bufferLength / 1024).toFixed(2) + "KiB";
+              }
             }
-          }
-          const fileSize = caluSize(file.buffer.length);
+            const fileSize = caluSize(file.buffer.length);
 
-          const resolution = { width: file.resolution.width, height: file.resolution.height };
-          const outputType =
-            listData.find((record) => record.id === pictureIndex)?.processingMethod || "未分类";
-          setFileInfo({
-            filePath,
-            fileName,
-            fileSize,
-            ceateTime: formatDate(file.stats.birthtime),
-            resolution,
-            outputType
+            const resolution = { width: file.resolution.width, height: file.resolution.height };
+            const outputType =
+              listData.find((record) => record.id === pictureIndex)?.processingMethod || "未分类";
+            setFileInfo({
+              filePath: file.path,
+              fileName,
+              fileSize,
+              ceateTime: getDateFullString(file.stats.birthtime),
+              resolution,
+              outputType
+            });
+
+            setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type?.mime })));
+
+            disableRef.current = false;
+          })
+          .catch((error) => {
+            window.api.log.error({ message: { "zh-cn": "readPicture 发生错误" }, error });
           });
-          setSRC(URL.createObjectURL(new Blob([file.buffer], { type: file.type.mime })));
-
-          disableRef.current = false;
-        });
       } catch (error) {
         const tempFileName = fileName.length > 10 ? fileName.slice(0, 7) + "..." : fileName;
         MessageAPI.error({
           id: "readPicture_error",
-          message: `开图片[${tempFileName}]失败`,
+          message: `读取图片[${tempFileName}]失败`,
           duration: 5000
         });
       }
@@ -124,10 +124,10 @@ function ViewImagePage() {
   }, [pictureIndex, files]);
 
   /** 加载完毕 */
-  function loaded(files: Record[]) {
+  function loaded(files: NSqlite.Record[]) {
     haveOutputFolders.current = [];
     const newFiles: FileFace[] = [];
-    const newListData: Record[] = [];
+    const newListData: NSqlite.Record[] = [];
     let newPictureIndex = 0;
     let index = 0;
     const length = files.length;
@@ -223,7 +223,6 @@ function ViewImagePage() {
     } else {
       window.api.dialog.SecondaryConfirmation({ message: "not found" });
     }
-    // const index
   }
 
   /** 执行分类 */
@@ -264,12 +263,15 @@ function ViewImagePage() {
         count: length,
         index: 1,
         startTime: now.getTime(),
-        startTimeText: formatDate(now)
+        startTimeText: getDateFullString(now)
       };
     });
     const dirPath = Store.dirpath;
     for (let index = 0; index < length; index++) {
-      await invoke("fc:classification", dirPath, copyList[index]);
+      const element = copyList[index];
+      if (element.IsClassified) {
+        await window.api.fs.getClassification(dirPath, copyList[index]);
+      }
       if (index >= length - 1) {
         setClassificationModal((origin) => {
           const now = new Date();
@@ -277,7 +279,7 @@ function ViewImagePage() {
             ...origin,
             index,
             endTime: now.getTime(),
-            endTimeText: formatDate(now)
+            endTimeText: getDateFullString(now)
           };
         });
       } else {
@@ -322,60 +324,64 @@ function ViewImagePage() {
 
     let outputDirName = [buttonInfo.folderName];
 
-    //#region 计算放大
-    if (buttonInfo.calculateTheMagnification) {
-      const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
-      const targetPC = resolution.width > resolution.height ? true : false;
-      const target = targetPC
-        ? { height: OutHeight, width: OutWidth }
-        : { height: OutWidth, width: OutHeight };
-      const widthDifference = target.width > resolution.width ? target.width - resolution.width : 0;
-      const heightDifference =
-        target.height > resolution.height ? target.height - resolution.height : 0;
-      /** 倍率 */
-      let Magnification = 1;
-      let lowValue = 0;
-      let targetValue = 0;
-      if (widthDifference > heightDifference) {
-        targetValue = target.width;
-        lowValue = resolution.width;
-      } else if (heightDifference > widthDifference) {
-        targetValue = target.height;
-        lowValue = resolution.height;
-      }
+    if (buttonInfo.IsClassified) {
+      //#region 计算放大
+      if (buttonInfo.calculateTheMagnification) {
+        const resolution = { height: fileInfo.resolution.height, width: fileInfo.resolution.width };
+        const targetPC = resolution.width > resolution.height ? true : false;
+        const target = targetPC
+          ? { height: OutHeight, width: OutWidth }
+          : { height: OutWidth, width: OutHeight };
+        const widthDifference =
+          target.width > resolution.width ? target.width - resolution.width : 0;
+        const heightDifference =
+          target.height > resolution.height ? target.height - resolution.height : 0;
+        /** 倍率 */
+        let Magnification = 1;
+        let lowValue = 0;
+        let targetValue = 0;
+        if (widthDifference > heightDifference) {
+          targetValue = target.width;
+          lowValue = resolution.width;
+        } else if (heightDifference > widthDifference) {
+          targetValue = target.height;
+          lowValue = resolution.height;
+        }
 
-      if (lowValue !== 0) {
-        for (Magnification = 1; Magnification < 4; Magnification++) {
-          if (Magnification * lowValue >= targetValue) {
-            break;
+        if (lowValue !== 0) {
+          for (Magnification = 1; Magnification < 4; Magnification++) {
+            if (Magnification * lowValue >= targetValue) {
+              break;
+            }
           }
         }
+        outputDirName.push(buttonInfo.folderName + "x" + Magnification);
       }
-      outputDirName.push(buttonInfo.folderName + "x" + Magnification);
-    }
-    //#endregion
+      //#endregion
 
-    //#region 自动分类
-    if (buttonInfo.aspectRatioClassification) {
-      const height = fileInfo.resolution.height;
-      const width = fileInfo.resolution.width;
-      let aspectRatio = "unkown";
-      if (width === height) {
-        aspectRatio = "1x1";
-      } else if (width > height) {
-        aspectRatio = "宽屏";
-      } else {
-        aspectRatio = "竖屏";
+      //#region 自动分类
+      if (buttonInfo.aspectRatioClassification) {
+        const height = fileInfo.resolution.height;
+        const width = fileInfo.resolution.width;
+        let aspectRatio = "unkown";
+        if (width === height) {
+          aspectRatio = "1x1";
+        } else if (width > height) {
+          aspectRatio = "宽屏";
+        } else {
+          aspectRatio = "竖屏";
+        }
+        outputDirName.splice(1, 0, aspectRatio);
       }
-      outputDirName.splice(1, 0, aspectRatio);
+      //#endregion
     }
-    //#endregion
 
-    const newRecord: Record = {
+    const newRecord: NSqlite.Record = {
       id: pictureIndex,
       name: fileInfo.fileName,
       processingMethod: buttonInfo.label,
-      outputDirName
+      outputDirName,
+      IsClassified: buttonInfo.IsClassified
     };
     function f() {
       const length = listData.length;
@@ -408,8 +414,11 @@ function ViewImagePage() {
     if (pictureIndex + 1 >= files.length) {
       disableRef.current = false;
     }
+    MessageAPI.success({
+        id: `addListData_${pictureIndex}`,
+        message: `NO.${pictureIndex + 1}，已分类至[${buttonInfo.label}]。`
+      });
     nextPicture();
-    // autoSave(newListData, files);
     if (AutoSaveRef.current) {
       AutoSaveRef.current.dataRequiringUpdating();
     }
@@ -448,11 +457,11 @@ function ViewImagePage() {
 
   const controlPanleStyle = fullWindowFlag
     ? {
-        width: 0,
-        flex: "0 0 0px",
-        borderWidth: 0,
-        padding: 0
-      }
+      width: 0,
+      flex: "0 0 0px",
+      borderWidth: 0,
+      padding: 0
+    }
     : {};
 
   return (
@@ -539,7 +548,7 @@ function ViewImagePage() {
         dirPath={Store.dirpath}
       />
 
-      <Modal visible={classificationModal.visible} onCancel={() => {}}>
+      <Modal visible={classificationModal.visible} onCancel={() => { }}>
         <div>
           <p>
             <span>{classificationModal.index + 1}</span>

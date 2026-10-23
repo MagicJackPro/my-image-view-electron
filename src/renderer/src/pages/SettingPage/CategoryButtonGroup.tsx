@@ -9,9 +9,10 @@ import Switch from "@renderer/components/Switch/Switch";
 import Input from "@renderer/components/Input/Input";
 import ShortcutKey from "./ShortcutKey";
 import Tooltip from "@renderer/components/Tooltip/Tooltip";
-import { Arrow, Add, Delete, InfoOutlined } from "@renderer/assets/icon/icon";
+import { Arrow, Add, Delete, InfoOutlined, Edit } from "@renderer/assets/icon/icon";
 import type { CategoryButtonGroupRecord } from "@renderer/store/store";
 import Pagination, { type PaginationFace } from "@renderer/components/Pagination/Pagination";
+import useMessage from "@renderer/hook/useMessage";
 
 interface PropsFace {
   defaultValue?: CategoryButtonGroupRecord[];
@@ -41,6 +42,7 @@ function createNewBtn(): CategoryButtonGroupRecord {
   return {
     aspectRatioClassification: false,
     calculateTheMagnification: false,
+    IsClassified: true,
     folderName: "",
     key: "",
     label: ""
@@ -52,12 +54,14 @@ export default function CategoryButtonGroup(props: PropsFace) {
   const [moduleConfig, dispatch] = useReducer<ModuleConfigFace, [action: ActionType]>(reducer, {
     visible: false,
     mode: null
-  });const [paginationConfig, setPaginationConfig] = useState({
+  });
+  const [paginationConfig, setPaginationConfig] = useState({
     pageSize: 0,
     current: 1,
     total: btns.length
   });
 
+  const MessageAPI = useMessage();
   const FormInstance = Form.useForm();
 
   const buttons = props.value || btns;
@@ -82,7 +86,7 @@ export default function CategoryButtonGroup(props: PropsFace) {
       newBtn.folderName = result.folderName;
       newBtn.aspectRatioClassification = result.aspectRatioClassification;
       newBtn.calculateTheMagnification = result.calculateTheMagnification;
-      //快捷键查重
+      //TODO 快捷键查重
       // 添加
       const newBtns: CategoryButtonGroupRecord[] = buttons.concat([newBtn]);
       if (props.onChange) {
@@ -90,6 +94,49 @@ export default function CategoryButtonGroup(props: PropsFace) {
       } else {
         setBtns(newBtns);
       }
+      closeModal();
+    } catch (error) {}
+  }
+
+  async function modifyBtn() {
+    // 检查信息
+    try {
+      const result = await FormInstance.validateFields();
+      const newBtn = createNewBtn();
+      const key = FormInstance.getFieldValue("key");
+      newBtn.key = key;
+      newBtn.label = result.label;
+      newBtn.folderName = result.folderName;
+      newBtn.aspectRatioClassification = result.aspectRatioClassification;
+      newBtn.calculateTheMagnification = result.calculateTheMagnification;
+      newBtn.IsClassified = result.IsClassified;
+      //TODO快捷键查重
+
+      const FindexIndex = buttons.findIndex((item) => item.key === key);
+      if (FindexIndex === -1) {
+        window.api.log.error({
+          message: { "zh-cn": "查找按钮修改位置失败" },
+          path: "src/renderer/src/pages/SettingPage/CategoryButtonGroup.tsx",
+          function: "CategoryButtonGroup>,modifyBtn",
+          data: { key, buttons: JSON.stringify(buttons) }
+        });
+        MessageAPI.error({
+          message: "修改按钮配置失败！",
+          id: "CategoryButtonGroup>modifyBtn>findIndex"
+        });
+        closeModal();
+        return;
+      }
+      const newBtns: CategoryButtonGroupRecord[] = Array.from(buttons);
+
+      newBtns.splice(FindexIndex, 1, newBtn);
+      if (props.onChange) {
+        props.onChange(newBtns);
+      } else {
+        setBtns(newBtns);
+      }
+
+      MessageAPI.success({ message: "修改按钮配置成功！", id: "CategoryButtonGroup/modifyBtn" });
       closeModal();
     } catch (error) {}
   }
@@ -139,6 +186,10 @@ export default function CategoryButtonGroup(props: PropsFace) {
         FormInstance.setFieldsValue(btn);
         dispatch("preview");
       };
+      function modifyClick() {
+        FormInstance.setFieldsValue(btn);
+        dispatch("modify");
+      }
       return (
         <div key={btn.key}>
           <div>
@@ -173,12 +224,15 @@ export default function CategoryButtonGroup(props: PropsFace) {
             <Tooltip title="删除">
               <Button
                 shape="circle"
-                icon={<Delete />}
+                icon={<Delete style={{ fill: "red" }} />}
                 danger
                 onClick={() => {
                   deleteBtn(index);
                 }}
               />
+            </Tooltip>
+            <Tooltip title="编辑">
+              <Button shape="circle" icon={<Edit />} onClick={modifyClick} />
             </Tooltip>
             <Tooltip title="详细信息">
               <Button shape="circle" icon={<InfoOutlined />} onClick={infoClick} />
@@ -217,6 +271,7 @@ export default function CategoryButtonGroup(props: PropsFace) {
   }
 
   const disenabled = moduleConfig.mode === "preview";
+
   return (
     <div className={style["base"]}>
       <div className={style["cgb-main"]}>{renderListItem()}</div>
@@ -268,6 +323,10 @@ export default function CategoryButtonGroup(props: PropsFace) {
             <Switch label="启用" disabled={disenabled} />
           </Form.Item>
 
+          <Form.Item name="IsClassified" label="是否分类">
+            <Switch label="启用" disabled={disenabled} />
+          </Form.Item>
+
           <Form.Item name="calculateTheMagnification" label="计算放大倍率">
             <Switch label="启用" disabled={disenabled} />
           </Form.Item>
@@ -278,6 +337,7 @@ export default function CategoryButtonGroup(props: PropsFace) {
           <div>
             <Button children="关闭" onClick={closeModal} />
             {moduleConfig.mode === "add" && <Button onClick={addBtn}>添加</Button>}
+            {moduleConfig.mode === "modify" && <Button onClick={modifyBtn}>修改</Button>}
           </div>
         </Form>
       </Modal>

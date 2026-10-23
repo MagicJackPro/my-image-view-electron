@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import type { MouseEvent, TouchEvent, Touch } from "react";
 import style from "./ViewImage.module.css";
 import Button from "../Button/Button";
 import {
@@ -12,6 +11,8 @@ import {
 import Select from "@renderer/components/Select/Select";
 import Tooltip from "@renderer/components/Tooltip/Tooltip";
 import { debounce } from "lodash";
+
+import type { MouseEvent, TouchEvent, Touch, SyntheticEvent } from "react";
 
 interface OptionFace {
   label: string;
@@ -38,6 +39,20 @@ function updateImg(
       ` scale(${scale / 100})`;
   });
 }
+
+const Options: OptionFace[] = [
+  { label: "10%", value: 10 },
+  { label: "25%", value: 25 },
+  { label: "50%", value: 50 },
+  { label: "75%", value: 75 },
+  { label: "100%", value: 100 },
+  { label: "125%", value: 125 },
+  { label: "150%", value: 150 },
+  { label: "175%", value: 175 },
+  { label: "200%", value: 200 },
+  { label: "300%", value: 300 },
+  { label: "400%", value: 400 }
+];
 
 export default function ViewImage(params: ViewImageFace) {
   const { src, resolution, onChangeFullWindow } = params;
@@ -120,10 +135,11 @@ export default function ViewImage(params: ViewImageFace) {
     updateImg(imgRef.current, newPercentage, translateRef.current, currentAngle.current);
   }
 
+  //#region 触摸事件
   function handlerTouchStart(event: TouchEvent<HTMLImageElement>) {
     /** 当前激活触点 */
     const Touches = event.touches;
-    if (!Gesture.current.enable && Touches.length > 1) {
+    if (Touches.length > 1) {
       const PointA = Touches[0];
       const PointB = Touches[1];
 
@@ -131,10 +147,6 @@ export default function ViewImage(params: ViewImageFace) {
       const startDeg = getDeg(PointA, PointB);
       const pagePointX = getMiddlePoint(PointA.pageX, PointB.pageX);
       const pagePointY = getMiddlePoint(PointA.pageY, PointB.pageY);
-      movingPoint.current = {
-        x: pagePointX,
-        y: pagePointY
-      };
       Gesture.current = {
         enable: true,
         percentage: imageScle.Percentage,
@@ -149,34 +161,12 @@ export default function ViewImage(params: ViewImageFace) {
         enable: false,
         percentage: imageScle.Percentage,
         roateDeg: 0,
-        startDeg:NaN,
-        startDis: NaN,
+        startDeg: 0,
+        startDis: 0,
         pagePoint: { x: changedTouchesFrist.clientX, y: changedTouchesFrist.clientY }
       };
     }
   }
-
-  function handleMouseDown(event: MouseEvent) {
-    event.preventDefault();
-    mouseDown.current = true;
-    movingPoint.current = { x: event.clientX, y: event.clientY };
-  }
-
-  function handlerTouchEnd(event: TouchEvent<HTMLImageElement>) {
-    if (event.touches.length < 2) {
-      currentAngle.current = currentAngle.current + Gesture.current.roateDeg;
-      Gesture.current = getDefaultGesture();
-    }
-  }
-
-  function handleMouseUp() {
-    mouseDown.current = false;
-  }
-
-  function handleMouseOut() {
-    mouseDown.current = false;
-  }
-
   function handlerTouchMove(event: TouchEvent<HTMLImageElement>) {
     if (!imgRef.current) {
       return;
@@ -186,14 +176,16 @@ export default function ViewImage(params: ViewImageFace) {
     if (Touches.length > 1) {
       const PointA = Touches[0];
       const PointB = Touches[1];
-
-      const nowDis = getDis(PointA, PointB);
-      const nowDeg = getDeg(PointA, PointB);
-
       const { percentage, startDis } = Gesture.current;
 
+      // 缩放
+      const nowDis = getDis(PointA, PointB);
       const Scale = Math.floor((nowDis / startDis) * percentage);
 
+      // 旋转
+      const nowDeg = getDeg(PointA, PointB);
+
+      // 拖动
       const pagePointX = getMiddlePoint(PointA.pageX, PointB.pageX);
       const pagePointY = getMiddlePoint(PointA.pageY, PointB.pageY);
 
@@ -236,6 +228,43 @@ export default function ViewImage(params: ViewImageFace) {
     }
   }
 
+  function handlerTouchEnd(event: TouchEvent<HTMLImageElement>) {
+    switch (event.touches.length) {
+      case 0:
+        Gesture.current = getDefaultGesture();
+        break;
+      case 1:
+        currentAngle.current = currentAngle.current + Gesture.current.roateDeg;
+        const { clientX, clientY } = event.touches[0];
+        const { x, y } = Gesture.current.pagePoint;
+        if (x == clientX && y === clientY) {
+          break;
+        }
+        Gesture.current.pagePoint = {
+          x: clientX,
+          y: clientY
+        };
+        break;
+      default:
+    }
+  }
+  //#endregion
+
+  //#region 鼠标事件
+  function handleMouseDown(event: MouseEvent) {
+    event.preventDefault();
+    mouseDown.current = true;
+    movingPoint.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function handleMouseUp() {
+    mouseDown.current = false;
+  }
+
+  function handleMouseOut() {
+    mouseDown.current = false;
+  }
+
   function handleMouseMove(event: MouseEvent) {
     if (!mouseDown.current) return;
     event.preventDefault();
@@ -250,8 +279,10 @@ export default function ViewImage(params: ViewImageFace) {
 
     updateImg(imgRef.current, imageScle.Percentage, translateRef.current, currentAngle.current);
   }
+  //#endregion
 
-  function resetTranslate() {
+  function resetTranslate(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     setImageScle((origin) => {
       return {
         ...origin,
@@ -264,26 +295,15 @@ export default function ViewImage(params: ViewImageFace) {
     updateImg(imgRef.current, imageScle.AdaptivePercentage, { x: 0, y: 0 }, currentAngle.current);
   }
 
-  function thePictureIsCenter() {
+  function thePictureIsCenter(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     translateRef.current = { x: 0, y: 0 };
     updateImg(imgRef.current, imageScle.AdaptivePercentage, { x: 0, y: 0 }, currentAngle.current);
   }
 
-  const Options: OptionFace[] = [
-    { label: "10%", value: 10 },
-    { label: "25%", value: 25 },
-    { label: "50%", value: 50 },
-    { label: "75%", value: 75 },
-    { label: "100%", value: 100 },
-    { label: "125%", value: 125 },
-    { label: "175%", value: 175 },
-    { label: "200%", value: 200 },
-    { label: "300%", value: 300 },
-    { label: "400%", value: 400 }
-  ];
-
   /** 缩小 */
-  function reductionPicture() {
+  function reductionPicture(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     if (Gesture.current.enable) {
       return;
     }
@@ -307,7 +327,8 @@ export default function ViewImage(params: ViewImageFace) {
   }
 
   /** 放大 */
-  function enlargementPicture() {
+  function enlargementPicture(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     if (Gesture.current.enable) {
       return;
     }
@@ -320,13 +341,14 @@ export default function ViewImage(params: ViewImageFace) {
           return resetSize(Options[index]);
         }
       }
-    } else if (foundIndex > 0 && foundIndex + 1 < Options.length) {
+    } else if (foundIndex + 1 < Options.length) {
       resetSize(Options[foundIndex + 1]);
     }
   }
 
   /** 全屏 */
-  function handleFullWindow() {
+  function handleFullWindow(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     if (resizeRef.current) {
       resizeRef.current();
     }
@@ -341,23 +363,32 @@ export default function ViewImage(params: ViewImageFace) {
     value: imageScle.Percentage
   };
 
+  function imgError(error: SyntheticEvent<HTMLImageElement>) {
+    window.api.log.error({ message: { "zh-cn": "img标签加载图片失败" }, error });
+  }
+
   return (
-    <div ref={boxRef} className={style["image-box"]}>
+    <div
+      ref={boxRef}
+      className={style["image-box"]}
+      onTouchEnd={handlerTouchEnd}
+      onTouchStart={handlerTouchStart}
+      onTouchMove={handlerTouchMove}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseOut={handleMouseOut}
+      onMouseUp={handleMouseUp}
+    >
       {src ? (
         <img
           ref={imgRef}
           className={style["img"]}
           draggable={false}
-          onTouchEnd={handlerTouchEnd}
-          onTouchStart={handlerTouchStart}
-          onTouchMove={handlerTouchMove}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseOut={handleMouseOut}
-          onMouseUp={handleMouseUp}
           src={src}
           width={resolution.width}
           height={resolution.height}
+          onError={imgError}
+          decoding="async"
         />
       ) : (
         <p>
@@ -427,7 +458,6 @@ function getDis(point: Touch, point2: Touch) {
 function getDeg(point: Touch, point2: Touch) {
   const x = point2.pageX - point.pageX;
   const y = point2.pageY - point.pageY;
-  // return (Math.atan2(y, x) * 180) / Math.PI;
   return Math.atan2(y, x) * (180 / Math.PI);
 }
 

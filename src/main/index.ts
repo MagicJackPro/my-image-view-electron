@@ -1,25 +1,26 @@
-import { app, shell, BrowserWindow, protocol } from "electron";
-import { join,dirname } from "path";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
-// import { access, constants, mkdir } from "node:fs";
+import { app, BrowserWindow } from "electron";
+import { join, dirname } from "path";
+import { optimizer, is } from "@electron-toolkit/utils";
 import { accessSync, constants, mkdirSync } from "node:fs";
 import icon from "../../resources/icon.png?asset";
 import { updateMainWindow } from "./fc";
 import "./db";
+import Logger from "./logger";
+
+Logger.info("process is started");
 
 function createWindow(): void {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 760,
-    show: false,
+    show: true,
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      sandbox: false
+      preload: join(__dirname, "../preload/index.js")
     },
-    title: "my-image-view-electron",
+    title: __APP_NAME__,
+    icon,
     titleBarStyle: "hidden",
     ...(process.platform !== "darwin"
       ? {
@@ -37,11 +38,6 @@ function createWindow(): void {
     updateMainWindow(mainWindow);
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
-    return { action: "deny" };
-  });
-
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -51,39 +47,10 @@ function createWindow(): void {
   }
 }
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "local-resource",
-    privileges: {
-      secure: true, // 让 Electron 信任这个方式就像信任网站的 HTTPS 一样
-      supportFetchAPI: true, // 允许我们像在网页上那样请求资源
-      standard: true, // 让这种方式的网址看起来像普通的网址
-      bypassCSP: true, // 允许我们绕过一些安全限制
-      stream: true // 允许我们以流的形式读取文件，这对于大文件很有用
-    }
-  }
-]);
-
-// ipcMain.handle("dark-mode:toggle", () => {
-//   if (nativeTheme.shouldUseDarkColors) {
-//     nativeTheme.themeSource = "light";
-//   } else {
-//     nativeTheme.themeSource = "dark";
-//   }
-//   return nativeTheme.shouldUseDarkColors;
-// });
-
-// ipcMain.handle("dark-mode:system", () => {
-//   nativeTheme.themeSource = "system";
-// });
-
-// ipcMain.handle("notification:test", () => {
-//   new Notification({ title: "test title", body: "test body" }).show();
-// });
-
 // #region 防止多开
-const gotTheLock = app.requestSingleInstanceLock()
-if(!gotTheLock) {
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  Logger.warn({ message: {"zh-cn": "重复启动, 程序退出！"} });
   app.quit();
 }
 // #endregion
@@ -108,31 +75,6 @@ try {
 // Some APIs can only be used after this event occurs.
 
 app.whenReady().then(() => {
-  // Set app user model id for windows
-  electronApp.setAppUserModelId("org.MyImageView");
-
-  // function convertPath(originalPath) {
-  //   const match = originalPath.match(/^([a-zA-Z])\/(.*)$/);
-
-  //   if (match) {
-  //     // 为 Windows 系统转换路径格式
-  //     return `${match[1]}:/${match[2]}`;
-  //   } else {
-  //     return originalPath; // 其他系统直接使用原始路径
-  //   }
-  // }
-
-  // 告诉 Electron 如何响应你的特殊方式的请求
-  // protocol.handle("local-resource", async (request) => {
-  //   const decodedUrl = decodeURIComponent(
-  //     request.url.replace(new RegExp(`^local-resource://`, "i"), "")
-  //   );
-
-  //   const fullPath = process.platform === "win32" ? convertPath(decodedUrl) : decodedUrl;
-  //   const data = await readFile(fullPath); // 异步读取文件内容
-  //   return new Response(data); // 将文件内容作为响应返回
-  // });
-
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils

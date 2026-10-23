@@ -1,13 +1,13 @@
 import { Outlet } from "react-router";
 import style from "./basePage.module.css";
 import Message from "@renderer/components/Message/Message";
-import { Icon } from "../../assets/icon/icon";
+import Icon from "@renderer/assets/icon.svg";
 
 export default function BasePage(): React.JSX.Element {
   return (
     <div className={style["base"]}>
       <div className={style["title-bar"]}>
-        <Icon style={{ width: 20, height: 20 }} />
+        <img className={style["icon"]} src={Icon} alt="logo" />
         <span>my-image-view-electron</span>
         <span>&nbsp;{__APP_VERSION__}</span>
       </div>

@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { join } from "node:path";
 import Database from "better-sqlite3";
+import Logger from "./logger";
 
 ipcMain.handle("db:create", (_IpcMainInvokeEvent, folderPath: string) => {
   const db = new Database(join(folderPath, "autoSave.db"), {});
@@ -10,7 +11,8 @@ ipcMain.handle("db:create", (_IpcMainInvokeEvent, folderPath: string) => {
           id INTEGER,
           name varchar(255) NOT NULL,
           processingMethod varchar(255),
-          outputDirName varchar(255)
+          outputDirName varchar(255),
+          IsClassified INTEGER
         );`);
   const task = db.transaction(() => {
     create.run();
@@ -24,19 +26,9 @@ ipcMain.handle("db:create", (_IpcMainInvokeEvent, folderPath: string) => {
   }
 });
 
-interface Record {
-  id: number;
-  /** 文件名 */
-  name: string;
-  /** 处理方式 */
-  processingMethod: string;
-  /** 输出目录名称 */
-  outputDirName: string[];
-}
-
 ipcMain.handle(
   "db:insertInto",
-  async (_IpcMainInvokeEvent, folderPath: string, array: Record[]) => {
+  async (_IpcMainInvokeEvent, folderPath: string, array: NSqlite.Record[]) => {
     let isROLLBACK = false;
     function checkRollBack(message: unknown) {
       if (message === "ROLLBACK") {
@@ -48,16 +40,16 @@ ipcMain.handle(
       verbose: checkRollBack
     });
     db.pragma("journal_mode = WAL");
-    // VALUES (@name, @processingMethod, @outputDirName)
     const insert = db.prepare(`
-      INSERT INTO filter_list (id, name, processingMethod, outputDirName)
-      VALUES (@id, @name, @processingMethod, @outputDirName);`);
+      INSERT INTO filter_list (id, name, processingMethod, outputDirName, IsClassified)
+      VALUES (@id, @name, @processingMethod, @outputDirName, @IsClassified);`);
 
-    const task = db.transaction((array: Record[]) => {
+    const task = db.transaction((array: NSqlite.Record[]) => {
       db.prepare("DELETE FROM filter_list;").run();
       for (const record of array) {
         insert.run({
           ...record,
+          IsClassified: record.IsClassified? 1:0,
           outputDirName: record.outputDirName.join("/")
         });
       }
@@ -70,14 +62,16 @@ ipcMain.handle(
         db.close();
       }
       if (isROLLBACK) {
+        
         return false;
       }
-      return Promise.resolve();
+      return true;
     } catch (error) {
       if (!db.inTransaction) {
         db.close();
       }
-      return Promise.reject();
+      Logger.error({message:{"zh-cn":"临时保存“db:insertInto”插入数据出错","en-us":"\"db:insertInto\" is fail"},error})
+      return false;
     }
   }
 );

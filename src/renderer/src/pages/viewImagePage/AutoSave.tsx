@@ -1,8 +1,7 @@
 import { useImperativeHandle, useState, useRef, useEffect } from "react";
 
 import style from "./AutoSave.module.css";
-import type { Record } from "./ModalTable";
-import { useMessage } from "@renderer/components/Message/Message";
+import useMessage from "@renderer/hook/useMessage";
 import { getDateFullString } from "@renderer/utility/date";
 import dayjs from "dayjs";
 
@@ -21,9 +20,9 @@ enum State {
 
 export interface RefFace {
   /** 手动保存 */
-  manualSave(listData: Record[], files: FileFace[]): Promise<void>;
+  manualSave(listData: NSqlite.Record[], files: FileFace[]): Promise<void>;
   /** 自动保存 */
-  autoSave(listData: Record[], files: FileFace[]): void;
+  autoSave(listData: NSqlite.Record[], files: FileFace[]): void;
   dataRequiringUpdating(): void;
 }
 
@@ -207,24 +206,25 @@ function AutoSaveComponemt(params: ParametersFace): React.JSX.Element {
 
 export default AutoSaveComponemt;
 
-async function saveData(listData: Record[], files: FileFace[], dirpath: string) {
-  const invoke = window.electron.ipcRenderer.invoke;
+async function saveData(listData: NSqlite.Record[], files: FileFace[], dirpath: string) {
+  const sqliteAPI = window.api.sqlite;
   if (listData.length === files.length) {
-    await invoke("db:create", dirpath);
-    await invoke("db:insertInto", dirpath, listData);
+    await sqliteAPI.create(dirpath);
+    return await sqliteAPI.insertInto(dirpath, listData);
   } else {
-    const datas: Record[] = files.map((file) => ({
+    const datas: NSqlite.Record[] = files.map((file) => ({
       id: file.id,
       name: file.name,
       processingMethod: "",
-      outputDirName: []
+      outputDirName: [],
+      IsClassified: true
     }));
     listData.forEach((listRecord) => {
       if (datas[listRecord.id].outputDirName.length === 0) {
         datas[listRecord.id] = listRecord;
       }
     });
-    await invoke("db:create", dirpath);
-    await invoke("db:insertInto", dirpath, datas);
+    await sqliteAPI.create(dirpath);
+    return await sqliteAPI.insertInto(dirpath, datas);
   }
 }

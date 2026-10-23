@@ -3,7 +3,7 @@ import style from "./Setting.module.css";
 import { useNavigate } from "react-router";
 import { useEffect, useRef } from "react";
 import { useStore } from "@renderer/hook/useStores";
-import { useMessage } from "@renderer/components/Message/Message";
+import useMessage from "@renderer/hook/useMessage";
 // import FormItemString from "@renderer/components/Form/FormItemString";
 import Form from "@renderer/components/Form/Form";
 import InputNumber from "@renderer/components/InputNumber/InputNumber";
@@ -61,7 +61,6 @@ export default function SetingPage(): React.JSX.Element {
     try {
       FormInstance.validateFields()
         .then((values) => {
-          console.log(`values:`, values);
           const newConfig: ConfigFace = {
             enableAutoSave: values.enableAutoSave,
             delayAutoSave: values.delayAutoSave,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useMemo, useReducer } from "react";
+import { createContext, useMemo, useReducer } from "react";
 import { Success, Info, Error, Warning } from "@renderer/assets/icon/icon";
 import style from "./Message.module.css";
 
@@ -16,7 +16,7 @@ interface MessageListFace {
 }
 
 type ConfigType = Partial<Omit<MessageListFace, "type">> & Pick<MessageListFace, "message" | "id">;
-// type exportConfigType = 
+
 const MsgList: MessageListFace[] = [];
 
 function reducer(
@@ -35,20 +35,19 @@ function reducer(
   }
 }
 
-interface ContextFace {
+export interface ContextFace {
   info: (config: ConfigType) => void;
   error: (config: ConfigType) => void;
   success: (config: ConfigType) => void;
   warning: (config: ConfigType) => void;
 }
 
-const MessageContext = createContext<ContextFace>({
+export const MessageContext = createContext<ContextFace>({
   info() {},
   warning() {},
   error() {},
   success() {}
 });
-export const useMessage = () => useContext<ContextFace>(MessageContext);
 
 export default function Message(params: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, MsgList);
@@ -70,14 +69,24 @@ export default function Message(params: { children: ReactNode }) {
           return <Info />;
       }
     }
+    
     return state.map((value) => {
+      const showProgress = value.duration !== 0;
       return (
         <div key={value.id} className={style["message"]}>
-          {renderIcon(value.type)}
-          <span>{value.message}</span>
-          {value.showCloseButton && (
-            <button onClick={() => closeMessage(value)}>closeMessage</button>
+          {showProgress && (
+            <div className={style["progress"]}>
+              <div
+                className={style["progress-l"]}
+                style={{backgroundColor:progressColor(value.type), animationDuration: `${value.duration}ms` }}
+              />
+            </div>
           )}
+            {renderIcon(value.type)}
+            <span>{value.message}</span>
+            {value.showCloseButton && (
+              <button onClick={() => closeMessage(value)}>X</button>
+            )}
         </div>
       );
     });
@@ -119,3 +128,15 @@ export default function Message(params: { children: ReactNode }) {
     </>
   );
 }
+function progressColor (type: MessageType){
+  switch (type) {
+    case "success":
+      return "#52C41A"
+    case "error": return "#ff4d4f";
+    case "warning": return "#FAAD14";
+
+    case "info":
+    default:
+      return "#1677ff";
+  }
+    }

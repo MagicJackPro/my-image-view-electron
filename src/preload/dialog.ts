@@ -1,8 +1,8 @@
-import { electronAPI } from "@electron-toolkit/preload";
+import { ipcRenderer } from "electron"
 
 export default {
   SecondaryConfirmation: async (config: Electron.MessageBoxOptions) => {
-   return await electronAPI.ipcRenderer.invoke(
+   return await ipcRenderer.invoke(
       "fc:SecondaryConfirmationDialog",
       config
     );

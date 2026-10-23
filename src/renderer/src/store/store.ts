@@ -13,6 +13,8 @@ export interface CategoryButtonGroupRecord {
   key: string;
   /** 按钮名称 */
   label: string;
+  /** 是否分类 */
+  IsClassified: boolean;
   /** 快捷键 */
   shortcutKey?: {
     /** 快捷键编码 */
@@ -36,14 +38,6 @@ export interface ConfigFace {
 export class Store {
   constructor() {
     makeAutoObservable(this);
-    // 尝试读取配置
-    window.api.fs.readConfig().then((config) => {
-      // console.log(`Store.ts config:`, config);
-      // if (ValidatorConfig(config)) {
-        // console.log("Store.ts alidatorConfig(config) return true");
-        this._config = config;
-      // }
-    });
   }
 
   private _dirpath: string = "";
@@ -52,6 +46,28 @@ export class Store {
   }
 
   private _config: ConfigFace = DefaultConfig();
+  private _loadedConfig: boolean = false;
+
+  public async readConfig() : Promise<unknown>{
+    if(this._loadedConfig) return;
+    try {
+      const config:any  = await window.api.fs.readConfig();
+      if(config?.type && config.type === "exist") {
+        console.log("config?.type ",config);
+        
+        window.api.log.error(config)
+        return;
+      }
+      this._config = config;
+      this._loadedConfig = true;
+      return;
+    } catch (error) {
+      console.log("store error",error);
+      
+      this._loadedConfig = true;
+      return Promise.reject( error);
+    }
+  }
 
   public get config() {
     return toJS(this._config);

@@ -3,10 +3,9 @@ import style from "./FilterFiles.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 
-import type { Record } from "./ModalTable";
 interface FilterFilesFace {
   dirPath: string;
-  onDone: (files: Record[]) => void;
+  onDone: (files: NSqlite.Record[]) => void;
   onlastPage: () => void;
 }
 
@@ -24,7 +23,7 @@ export default function FilterFiles(params: FilterFilesFace) {
     isDone: false
   });
   const [visible, setVisible] = useState(false);
-  const resultArrayRef = useRef<Record[]>([]);
+  const resultArrayRef = useRef<NSqlite.Record[]>([]);
   const readFileFailArrayRef = useRef<{ name: string; description: string }[]>([]);
 
   useEffect(() => {
@@ -53,8 +52,6 @@ export default function FilterFiles(params: FilterFilesFace) {
 
       const found = originList.find((fileName) => fileName === "autoSave.db");
       if (found) {
-        try {
-        } catch (error) {}
         const response = await window.api.dialog.SecondaryConfirmation({
           message: "检测到自动保存进度文件，是否读取？",
           type: "info",
@@ -62,11 +59,21 @@ export default function FilterFiles(params: FilterFilesFace) {
         });
 
         if (response.response === 0) {
-          const arr = await window.electron.ipcRenderer.invoke("db:selectAll", dirPath);
+          setProgress({
+            count: 1,
+            fail: 0,
+            index: 1,
+            percentage: 50,
+            stepName: "读取自动保存进度文件",
+            success: 0,
+            isDone: false
+          });
+          const arr = await window.api.sqlite.selectAll(dirPath);
 
           resultArrayRef.current = arr.map((record) => {
             const outputDirName = record.outputDirName ? record.outputDirName.split("/") : [];
-            return { ...record, outputDirName };
+            const IsClassified = Boolean(record.IsClassified)
+            return { ...record, outputDirName, IsClassified };
           });
           setProgress({
             count: 1,
@@ -97,14 +104,19 @@ export default function FilterFiles(params: FilterFilesFace) {
       for (let index = 0; index < length; index++) {
         const isDone = index + 1 === length;
         const newPercentage = Math.floor((((index + 1) / length) * 100) / 2);
+        console.log(originList[index].slice(0,10));
+        
         try {
-          const type = await myFS.readFileType(dirPath + "\\" + originList[index]);
+          const type = await myFS.readFileType([dirPath , originList[index]]);
+          console.log(originList[index].slice(0,10),type);
+          
           if (MIMEType.includes(type.mime)) {
             resultArrayRef.current.push({
               id: resultArrayRef.current.length,
               name: originList[index],
               outputDirName: [],
-              processingMethod: ""
+              processingMethod: "",
+              IsClassified: true
             });
             setProgress((origin) => {
               return {
@@ -135,6 +147,8 @@ export default function FilterFiles(params: FilterFilesFace) {
             });
           }
         } catch (error) {
+          window.api.log.error(error);
+          
           readFileFailArrayRef.current.push({
             name: originList[index],
             description: "不支持文件夹或者损坏的文件"
@@ -176,7 +190,7 @@ export default function FilterFiles(params: FilterFilesFace) {
     }
     const body = readFileFailArrayRef.current.slice(0, 5).map((object, index) => {
       return (
-        <div>
+        <div key={index}>
           <span>{index + 1}:</span>
           <span>{object.name}</span>
           <span>{object.description}</span>

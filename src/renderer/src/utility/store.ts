@@ -13,6 +13,7 @@ export function DefaultConfig(): ConfigFace {
           folderName: "待删除",
           aspectRatioClassification: false,
           calculateTheMagnification: false,
+          IsClassified: false,
           shortcutKey: {
             shortcutKeyCode: 96,
             shortcutKeyAlias: "Num 0"
@@ -24,6 +25,7 @@ export function DefaultConfig(): ConfigFace {
           folderName: "自动",
           aspectRatioClassification: true,
           calculateTheMagnification: true,
+          IsClassified: true,
           shortcutKey: {
             shortcutKeyCode: 97,
             shortcutKeyAlias: "Num 1"
@@ -35,6 +37,7 @@ export function DefaultConfig(): ConfigFace {
           folderName: "其他",
           aspectRatioClassification: true,
           calculateTheMagnification: true,
+          IsClassified: true,
           shortcutKey: {
             shortcutKeyCode: 98,
             shortcutKeyAlias: "Num 2"

@@ -4,17 +4,7 @@ import style from "./ModalTable.module.css";
 import Button from "@renderer/components/Button/Button";
 import Modal from "@renderer/components/Modal/Modal";
 
-export interface Record {
-  id: number;
-  /** 文件名 */
-  name: string;
-  /** 处理方式 */
-  processingMethod: string;
-  /** 输出目录名称 */
-  outputDirName: string[];
-}
-
-interface CurrentRecord extends Record {
+interface CurrentRecord extends NSqlite.Record {
   src: string;
 }
 
@@ -32,7 +22,7 @@ interface PaginationFace {
 interface ModalTableFace {
   visible: boolean;
   onCancel: () => void;
-  listData: Record[];
+  listData: NSqlite.Record[];
   dirPath: string;
 }
 
@@ -64,14 +54,14 @@ export default function ModalTable(params: ModalTableFace) {
     const start = (pagination.pageNumber - 1) * pagination.pageSize;
 
     const arr = listData.slice(start, start + 4).map((record) => {
-      window.api.fs.readPicture(`${dirPath}\\${record.name}`).then((result) => {
+      window.api.fs.readPicture([dirPath,record.name]).then((result) => {
         setCurrentList((origin) => {
           const targetName = record.name;
           const foundIndex = origin.findIndex((val) => val.name === targetName);
           if (foundIndex === -1) return origin;
           const newRecord = {
             ...record,
-            src: URL.createObjectURL(new Blob([result.buffer], { type: result.type.mime }))
+            src: URL.createObjectURL(new Blob([result.buffer], { type: result.type?.mime }))
           };
           return [...origin.slice(0, foundIndex), newRecord, ...origin.slice(foundIndex + 1)];
         });
