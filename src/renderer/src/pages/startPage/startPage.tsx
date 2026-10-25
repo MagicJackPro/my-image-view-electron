@@ -64,8 +64,6 @@ function StartPage() {
   }
   useEffect(() => {
     store.readConfig().catch((error) => {
-      console.dir(error);
-      
       if (error?.type === "content-format-is-incorrect") {
         MessageAPI.error({ message: "配置文件格式不正确！", id: "content-format-is-incorrect" });
       } else if (error?.type === "exist") {

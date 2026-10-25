@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: electron-app
+appId: MagicJack.imageViewElectron
+productName: my-image-view-electron
 directories:
   buildResources: build
 files:
@@ -12,8 +12,12 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: electron-app
   icon: build/icon.png
+  target:
+    - 
+      target: portable
+      arch: 
+        - x64
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -27,6 +31,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  category: MagicJack.app.imageViewElectron.type
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -44,3 +49,6 @@ publish:
   url: https://example.com/auto-updates
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+  requestExecutionLevel: user

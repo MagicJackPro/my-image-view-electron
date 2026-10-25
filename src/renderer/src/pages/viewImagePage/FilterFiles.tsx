@@ -104,11 +104,9 @@ export default function FilterFiles(params: FilterFilesFace) {
       for (let index = 0; index < length; index++) {
         const isDone = index + 1 === length;
         const newPercentage = Math.floor((((index + 1) / length) * 100) / 2);
-        console.log(originList[index].slice(0,10));
         
         try {
           const type = await myFS.readFileType([dirPath , originList[index]]);
-          console.log(originList[index].slice(0,10),type);
           
           if (MIMEType.includes(type.mime)) {
             resultArrayRef.current.push({

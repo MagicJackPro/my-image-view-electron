@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createContext, useMemo, useReducer } from "react";
 import { Success, Info, Error, Warning } from "@renderer/assets/icon/icon";
 import style from "./Message.module.css";
+import { getDateFullString } from "@renderer/utility/date";
 
 type MessageType = "info" | "success" | "error" | "warning";
 
@@ -13,6 +14,8 @@ interface MessageListFace {
   duration: number;
   type: MessageType;
   showCloseButton: boolean;
+  createTime: string;
+  timeoutID: number;
 }
 
 type ConfigType = Partial<Omit<MessageListFace, "type">> & Pick<MessageListFace, "message" | "id">;
@@ -21,11 +24,18 @@ const MsgList: MessageListFace[] = [];
 
 function reducer(
   state: MessageListFace[],
-  action: { type: "add" | "remove"; payload: MessageListFace }
+  action: { type: "add" | "remove" | "update"; payload: MessageListFace }
 ) {
   switch (action.type) {
     case "add":
       return [...state, action.payload];
+    case "update": {
+      const findIndex = state.findIndex((value) => value.id === action.payload.id);
+      if (findIndex === -1) return [...state, action.payload];
+      const newState = [...state];
+      newState.splice(findIndex, 1, action.payload);
+      return newState;
+    }
     case "remove":
       const findIndex = state.findIndex((value) => value.id === action.payload.id);
       if (findIndex === -1) return state;
@@ -69,47 +79,55 @@ export default function Message(params: { children: ReactNode }) {
           return <Info />;
       }
     }
-    
+
     return state.map((value) => {
       const showProgress = value.duration !== 0;
       return (
-        <div key={value.id} className={style["message"]}>
+        <div key={value.createTime + value.id} className={style["message"]}>
           {showProgress && (
             <div className={style["progress"]}>
               <div
                 className={style["progress-l"]}
-                style={{backgroundColor:progressColor(value.type), animationDuration: `${value.duration}ms` }}
+                style={{
+                  backgroundColor: progressColor(value.type),
+                  animationDuration: `${value.duration}ms`
+                }}
               />
             </div>
           )}
-            {renderIcon(value.type)}
-            <span>{value.message}</span>
-            {value.showCloseButton && (
-              <button onClick={() => closeMessage(value)}>X</button>
-            )}
+          {renderIcon(value.type)}
+          <span>{value.message}</span>
+          {value.showCloseButton && <button onClick={() => closeMessage(value)}>X</button>}
         </div>
       );
     });
   }, [state]);
 
   function addMessage(config: ConfigType, type: MessageType) {
-    const newId = config.id;
-    if (state.findIndex((value) => value.id === newId) !== -1) return;
-    const defaultConfig = {
+    const defaultConfig: MessageListFace = {
       id: "defaultID",
       message: "",
       onClose: null,
       duration: 3000,
       type: "info",
-      showCloseButton: false
+      showCloseButton: false,
+      createTime: getDateFullString(),
+      timeoutID: NaN
     };
     const finalConfig: MessageListFace = { ...defaultConfig, ...config, type };
-    dispatch({ type: "add", payload: finalConfig });
     if (finalConfig.duration !== 0) {
-      setTimeout(() => {
+      finalConfig.timeoutID = window.setTimeout(() => {
         dispatch({ type: "remove", payload: finalConfig });
         if (config.onClose) config.onClose();
       }, finalConfig.duration);
+    }
+    const targetID = finalConfig.id;
+    const findIndex = state.findIndex((value) => value.id === targetID);
+    if (findIndex !== -1) {
+      window.clearTimeout(state[findIndex].timeoutID);
+      dispatch({ type: "update", payload: finalConfig });
+    } else {
+      dispatch({ type: "add", payload: finalConfig });
     }
   }
 
@@ -128,15 +146,17 @@ export default function Message(params: { children: ReactNode }) {
     </>
   );
 }
-function progressColor (type: MessageType){
+function progressColor(type: MessageType) {
   switch (type) {
     case "success":
-      return "#52C41A"
-    case "error": return "#ff4d4f";
-    case "warning": return "#FAAD14";
+      return "#52C41A";
+    case "error":
+      return "#ff4d4f";
+    case "warning":
+      return "#FAAD14";
 
     case "info":
     default:
       return "#1677ff";
   }
-    }
+}

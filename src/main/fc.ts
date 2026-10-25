@@ -163,14 +163,14 @@ interface ConfigFace {
 ipcMain.handle(
   "fc:readConfig",
   async (): Promise<{ data?: ConfigFace; error?: { type: string; message: string } }> => {
-    const paths = getPaths();
+    const configPath = getPaths().configPath;
     try {
-      await access(paths.configPath);
+      await access(configPath);
     } catch (error) {
-      Logger.warn({ message: { "en-us": "config.json does not exists" } });
+      Logger.warn({ message: { "en-us": "config.json does not exists" },path: configPath });
       return { error: { type: "exist", message: "config.json does not exists" } };
     }
-    const originalString = await readFile(paths.configPath, {
+    const originalString = await readFile(configPath, {
       encoding: "utf-8"
     });
     const unSafeValue: unknown = JSON.parse(originalString);

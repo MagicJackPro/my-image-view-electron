@@ -8,11 +8,10 @@ import getPaths from "./paths";
 function init() {
   const IsDev = import.meta.env.DEV;
   const streams: any [] = [
-    // Pino.destination({contentMode: "utf8"}),
-    {stream: process.stdout}
+    Pino.destination({contentMode: "utf8"}),
   ];
 
-  const FileName = `log_${dayjs().format("YYYY_MM_DD_HH_MM_ss_ZZ")}.txt`;
+  const FileName = `log_${dayjs().format("YYYY_MM_DD_HH_mm_ss_ZZ")}.txt`;
   const DirPath = getPaths().logPath;
   const LogPath = path.join(DirPath, FileName);
 

@@ -54,8 +54,6 @@ export class Store {
       const config:any  = await window.api.fs.readConfig();
       if(config?.type && config.type === "exist") {
         console.log("config?.type ",config);
-        
-        window.api.log.error(config)
         return;
       }
       this._config = config;

@@ -242,9 +242,16 @@ function ViewImagePage() {
           break;
         }
       }
-      window.api.dialog.SecondaryConfirmation({
-        message: `还差${dValue}张图片没有选择分类，前${arr.length}个图片编号分别是${arr.join("、")}。`
-      });
+      window.api.dialog
+        .SecondaryConfirmation({
+          message: `还差${dValue}张图片没有选择分类，前${arr.length}个图片编号分别是${arr.join("、")}。`,
+          buttons: ["确认", "跳转"]
+        })
+        .then((result) => {
+          if (result.response === 1) {
+            setPictureIndex(arr[0] - 1);
+          }
+        });
       return;
     } else if (length !== files.length) {
       MessageAPI.error({
@@ -415,9 +422,9 @@ function ViewImagePage() {
       disableRef.current = false;
     }
     MessageAPI.success({
-        id: `addListData_${pictureIndex}`,
-        message: `NO.${pictureIndex + 1}，已分类至[${buttonInfo.label}]。`
-      });
+      id: `addListData_${pictureIndex}`,
+      message: `NO.${pictureIndex + 1}，已分类至[${buttonInfo.label}]。`
+    });
     nextPicture();
     if (AutoSaveRef.current) {
       AutoSaveRef.current.dataRequiringUpdating();
@@ -457,11 +464,11 @@ function ViewImagePage() {
 
   const controlPanleStyle = fullWindowFlag
     ? {
-      width: 0,
-      flex: "0 0 0px",
-      borderWidth: 0,
-      padding: 0
-    }
+        width: 0,
+        flex: "0 0 0px",
+        borderWidth: 0,
+        padding: 0
+      }
     : {};
 
   return (
@@ -548,7 +555,7 @@ function ViewImagePage() {
         dirPath={Store.dirpath}
       />
 
-      <Modal visible={classificationModal.visible} onCancel={() => { }}>
+      <Modal visible={classificationModal.visible} onCancel={() => {}}>
         <div>
           <p>
             <span>{classificationModal.index + 1}</span>

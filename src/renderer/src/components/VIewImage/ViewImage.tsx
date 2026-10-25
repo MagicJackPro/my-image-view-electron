@@ -74,6 +74,7 @@ export default function ViewImage(params: ViewImageFace) {
   const movingPoint = useRef({ x: 0, y: 0 });
   const resizeRef = useRef<Function>(undefined);
   const Gesture = useRef<IGesture>(getDefaultGesture());
+  const test = useRef<number>(NaN);
 
   useEffect(() => {
     function documentResize(init: boolean) {
@@ -155,6 +156,7 @@ export default function ViewImage(params: ViewImageFace) {
         startDis,
         pagePoint: { x: pagePointX, y: pagePointY }
       };
+      test.current = Math.abs(PointA.clientX - PointB.clientX) + Math.abs(PointA.clientY - PointB.clientY);
     } else {
       const changedTouchesFrist = Touches[0];
       Gesture.current = {
@@ -174,13 +176,18 @@ export default function ViewImage(params: ViewImageFace) {
     /** 当前激活触点 */
     const Touches = event.touches;
     if (Touches.length > 1) {
+      
       const PointA = Touches[0];
       const PointB = Touches[1];
-      const { percentage, startDis } = Gesture.current;
-
+      
       // 缩放
+      const { percentage, startDis } = Gesture.current;
       const nowDis = getDis(PointA, PointB);
       const Scale = Math.floor((nowDis / startDis) * percentage);
+      // const { percentage} = Gesture.current;
+      // const nowLength = Math.abs(PointA.clientX - PointB.clientX) + Math.abs(PointA.clientY - PointB.clientY);
+      // const Scale = Math.floor((nowLength / test.current) * percentage);
+
 
       // 旋转
       const nowDeg = getDeg(PointA, PointB);
@@ -206,6 +213,15 @@ export default function ViewImage(params: ViewImageFace) {
       Gesture.current.roateDeg = roateDeg;
 
       updateImg(imgRef.current, Scale, translateRef.current, Rotation);
+
+window.performance.mark('myComponent:render:end');
+const p =window.performance.measure('myComponent:render:duration','myComponent:render:start','myComponent:render:end')
+if(p.duration !== 0){
+  console.log(`p: ${p.duration};Scale: ${Scale};`);
+
+}
+window.performance.clearMarks();
+window.performance.clearMeasures();
 
       setImageScle((state) => {
         return { ...state, Percentage: Scale };
