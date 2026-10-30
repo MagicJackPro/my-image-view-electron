@@ -7,23 +7,24 @@ import getPaths from "./paths";
 /** 初始化日志模块 */
 function init() {
   const IsDev = import.meta.env.DEV;
-  const streams: any [] = [
-    Pino.destination({contentMode: "utf8"}),
-  ];
 
   const FileName = `log_${dayjs().format("YYYY_MM_DD_HH_mm_ss_ZZ")}.txt`;
   const DirPath = getPaths().logPath;
   const LogPath = path.join(DirPath, FileName);
 
-  streams.push(
-    Pino.destination({
-      dest: LogPath,
-      // minLength: 4096,
-      sync: false,
-      mkdir: true,
-      contentMode: "utf8"
-    })
-  );
+  const streams = [
+    { level: "trace", stream: Pino.destination({ contentMode: "utf8" }) },
+    {
+      level: "info",
+      stream: Pino.destination({
+        dest: LogPath,
+        // minLength: 4096,
+        sync: false,
+        mkdir: true,
+        contentMode: "utf8"
+      })
+    }
+  ];
 
   const Level = IsDev ? "trace" : "warn";
 

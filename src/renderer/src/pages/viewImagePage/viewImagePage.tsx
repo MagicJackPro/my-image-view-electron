@@ -104,7 +104,7 @@ function ViewImagePage() {
             disableRef.current = false;
           })
           .catch((error) => {
-            window.api.log.error({ message: { "zh-cn": "readPicture 发生错误" }, error });
+            window.api.log.error({ message: { "zh-cn": "readPicture 发生错误" }, error , filePath});
           });
       } catch (error) {
         const tempFileName = fileName.length > 10 ? fileName.slice(0, 7) + "..." : fileName;

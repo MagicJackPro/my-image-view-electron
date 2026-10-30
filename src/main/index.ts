@@ -7,8 +7,6 @@ import { updateMainWindow } from "./fc";
 import "./db";
 import Logger from "./logger";
 
-Logger.info("process is started");
-
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1280,

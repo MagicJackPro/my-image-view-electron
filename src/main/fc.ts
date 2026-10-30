@@ -46,7 +46,12 @@ ipcMain.handle(
       fileHandle.close();
 
       const type = await fileTypeFromBuffer(fileBuffer);
-      const resolution = imageSize(fileBuffer);
+      let resolution = { width: 0, height: 0 };
+      try {
+        resolution = imageSizeJPG(fileBuffer);
+      } catch {
+        resolution = imageSize(fileBuffer);
+      }
 
       const stats = {
         birthtime: originStats.birthtime,
@@ -62,7 +67,7 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("fc:selectDir", async (_IpcMainInvokeEvent,defaultPath ?:string) => {
+ipcMain.handle("fc:selectDir", async (_IpcMainInvokeEvent, defaultPath?: string) => {
   try {
     const config: Electron.OpenDialogOptions = {
       defaultPath,
@@ -167,7 +172,7 @@ ipcMain.handle(
     try {
       await access(configPath);
     } catch (error) {
-      Logger.warn({ message: { "en-us": "config.json does not exists" },path: configPath });
+      Logger.warn({ message: { "en-us": "config.json does not exists" }, path: configPath });
       return { error: { type: "exist", message: "config.json does not exists" } };
     }
     const originalString = await readFile(configPath, {
@@ -246,4 +251,43 @@ function ValidatorConfig(unSafeValue: any) {
   const check = v.compile(schema);
 
   return check(unSafeValue);
+}
+
+function imageSizeJPG(input: Buffer<ArrayBufferLike>) {
+  if (input[0] !== 0xff || input[1] !== 0xd8) {
+    throw new Error("not JPG");
+  }
+  const length = input.length;
+  for (let index = 2; index < length; index += 2) {
+    if (input[index] !== 0xff) {
+      continue;
+    } else if (index + 1 >= length) {
+      break;
+    }
+    const marker = input[index + 1];
+    const isSOF =
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf);
+    if (isSOF) {
+      return {
+        height: input.readUint16BE(index + 5),
+        width: input.readUint16BE(index + 7)
+      };
+    } else if (marker === 0xd9) {
+      // EOI (End of Image)，没找到 SOF，格式异常
+      break;
+    } else if (marker === 0xda) {
+      // SOS (Start of Scan)，后续是压缩数据，不再包含 SOF
+      break;
+    } else if (marker === 0x00 || marker === 0xff) {
+      // 填充字节或连续 FF，跳过
+      continue;
+    } else {
+      const length = input.readUint16BE(index + 2);
+      index += length;
+    }
+  }
+  throw new Error("JPG have not resoltion");;
 }

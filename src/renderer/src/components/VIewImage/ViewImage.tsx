@@ -144,7 +144,7 @@ export default function ViewImage(params: ViewImageFace) {
       const PointA = Touches[0];
       const PointB = Touches[1];
 
-      const startDis = getDis(PointA, PointB);
+      // const startDis = getDis(PointA, PointB);
       const startDeg = getDeg(PointA, PointB);
       const pagePointX = getMiddlePoint(PointA.pageX, PointB.pageX);
       const pagePointY = getMiddlePoint(PointA.pageY, PointB.pageY);
@@ -153,7 +153,8 @@ export default function ViewImage(params: ViewImageFace) {
         percentage: imageScle.Percentage,
         roateDeg: 0,
         startDeg,
-        startDis,
+        // startDis,
+        startDis: 0,
         pagePoint: { x: pagePointX, y: pagePointY }
       };
       test.current = Math.abs(PointA.clientX - PointB.clientX) + Math.abs(PointA.clientY - PointB.clientY);
@@ -181,12 +182,12 @@ export default function ViewImage(params: ViewImageFace) {
       const PointB = Touches[1];
       
       // 缩放
-      const { percentage, startDis } = Gesture.current;
-      const nowDis = getDis(PointA, PointB);
-      const Scale = Math.floor((nowDis / startDis) * percentage);
-      // const { percentage} = Gesture.current;
-      // const nowLength = Math.abs(PointA.clientX - PointB.clientX) + Math.abs(PointA.clientY - PointB.clientY);
-      // const Scale = Math.floor((nowLength / test.current) * percentage);
+      // const { percentage, startDis } = Gesture.current;
+      // const nowDis = getDis(PointA, PointB);
+      // const Scale = Math.floor((nowDis / startDis) * percentage);
+      const { percentage} = Gesture.current;
+      const nowLength = Math.abs(PointA.clientX - PointB.clientX) + Math.abs(PointA.clientY - PointB.clientY);
+      const Scale = Math.floor((nowLength / test.current) * percentage);
 
 
       // 旋转
@@ -213,15 +214,6 @@ export default function ViewImage(params: ViewImageFace) {
       Gesture.current.roateDeg = roateDeg;
 
       updateImg(imgRef.current, Scale, translateRef.current, Rotation);
-
-window.performance.mark('myComponent:render:end');
-const p =window.performance.measure('myComponent:render:duration','myComponent:render:start','myComponent:render:end')
-if(p.duration !== 0){
-  console.log(`p: ${p.duration};Scale: ${Scale};`);
-
-}
-window.performance.clearMarks();
-window.performance.clearMeasures();
 
       setImageScle((state) => {
         return { ...state, Percentage: Scale };
@@ -466,11 +458,11 @@ function getDefaultGesture(): IGesture {
 /** 求两点线段长度
  * 使用勾股定理
  */
-function getDis(point: Touch, point2: Touch) {
-  const x = point2.pageX - point.pageX;
-  const y = point2.pageY - point.pageY;
-  return Math.sqrt(x * x + y * y);
-}
+// function getDis(point: Touch, point2: Touch) {
+//   const x = point2.pageX - point.pageX;
+//   const y = point2.pageY - point.pageY;
+//   return Math.sqrt(x * x + y * y);
+// }
 function getDeg(point: Touch, point2: Touch) {
   const x = point2.pageX - point.pageX;
   const y = point2.pageY - point.pageY;

@@ -98,7 +98,7 @@ export default function FilterFiles(params: FilterFilesFace) {
         isDone: false
       });
       // 筛选支持读取的图片
-      const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp", "image/avif"];
+      const MIMEType = ["image/gif", "image/jpeg", "image/png", "image/webp", "image/avif", "image/bmp"];
 
       const length = originList.length;
       for (let index = 0; index < length; index++) {
